@@ -25,23 +25,28 @@ h1{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:clamp(28px,3.6
 .count{font-family:'Fraunces',serif;font-size:clamp(36px,4.4vw,84px);line-height:1;text-align:right}
 .count small{display:block;font-family:'IBM Plex Sans';font-size:clamp(12px,1vw,18px);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
 .strips{display:flex;flex-direction:column;gap:clamp(8px,1vw,14px)}
-.strip{display:grid;grid-template-columns:clamp(120px,14vw,260px) 1fr clamp(110px,11vw,200px);gap:clamp(10px,1.4vw,24px);align-items:center;background:var(--panel);border-radius:10px;padding:clamp(10px,1.2vw,18px) clamp(12px,1.4vw,22px)}
+.strip{display:grid;grid-template-columns:clamp(120px,14vw,260px) 1fr clamp(170px,17vw,320px);gap:clamp(10px,1.4vw,24px);align-items:center;background:var(--panel);border-radius:10px;padding:clamp(10px,1.2vw,18px) clamp(12px,1.4vw,22px)}
 .strip .lab b{display:block;font-family:'Fraunces',serif;font-weight:400;font-size:clamp(18px,1.8vw,32px)}
 .strip .lab span{font-size:clamp(11px,.9vw,16px);color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
 .strip svg{width:100%;height:auto;display:block}
-.strip .num{text-align:right}
+.strip .num{text-align:right;display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}
 .strip .num b{display:block;font-family:'Fraunces',serif;font-weight:400;font-size:clamp(22px,2.4vw,44px);line-height:1.05}
 .strip .num span{font-size:clamp(11px,.85vw,15px);color:var(--muted)}
-.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(8px,1vw,16px)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(8px,1vw,16px)}
 .fact{background:var(--panel);border-radius:10px;padding:clamp(12px,1.4vw,22px);border-top:5px solid var(--mist)}
 .fact.hot{border-top-color:var(--brass-hi)}
+.veiled{visibility:hidden;opacity:0}
+#facts,#ask{transition:opacity .6s}
 .fact b{display:block;font-family:'Fraunces',serif;font-weight:400;font-size:clamp(26px,3vw,56px);line-height:1}
+.fact h2{font-family:'IBM Plex Sans',sans-serif;font-size:clamp(11px,.9vw,16px);letter-spacing:.14em;text-transform:uppercase;color:var(--brass-hi);font-weight:600;margin-bottom:8px}
+.fact small{font-size:.45em;color:var(--muted)}
 .fact span{display:block;margin-top:8px;font-size:clamp(12px,1vw,19px);color:var(--mist);line-height:1.35}
 .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:clamp(11px,.85vw,15px);color:var(--muted)}
 .tag{display:inline-block;background:var(--alert);color:#102E36;font-weight:600;padding:2px 10px;border-radius:999px;margin-left:10px;font-size:.8em;letter-spacing:.1em}
 .wait{font-family:'Fraunces',serif;font-size:clamp(22px,2.4vw,40px);color:var(--muted);padding:40px 0}
 button.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:4px 12px;font:inherit;cursor:pointer}
-@media (max-width:760px){ .facts{grid-template-columns:1fr 1fr} .strip{grid-template-columns:1fr} .strip .num{text-align:left} }
+.ask{font-family:'Fraunces',serif;font-style:italic;font-size:clamp(18px,1.7vw,30px);color:var(--brass-hi)}
+@media (max-width:760px){ .facts{grid-template-columns:1fr} .strip{grid-template-columns:1fr} .strip .num{text-align:left} }
 </style>
 </head>
 <body>
@@ -54,7 +59,8 @@ button.ghost{background:transparent;border:1px solid var(--line);color:var(--mut
     <div class="count"><span id="n">0</span><small>players</small></div>
   </div>
   <div class="strips" id="strips"></div>
-  <div class="facts" id="facts"></div>
+  <div class="facts veiled" id="facts"></div>
+  <p class="ask veiled" id="ask"></p>
   <div class="foot">
     <span id="status">Connecting…</span>
     <span>Each dot is one person. Anonymous scores only. <button class="ghost" id="theme">Light / dark</button></span>
@@ -66,6 +72,21 @@ var CFG = window.FOCUS_CONFIG || {}, CUTOFF = 25, HONEST_MAX = 9;
 var qs = new URLSearchParams(location.search);
 var SESSION = (qs.get("s") && /^[\w-]{1,40}$/.test(qs.get("s"))) ? qs.get("s") : (CFG.SESSION || "bridges-2026");
 var DEMO = qs.get("demo") === "1";
+// Presenter keys: → / PageDown / Space / Enter reveal the explanation, ← / PageUp hide it.
+// R starts a fresh room (shows only scores sent from now on); A shows every score again.
+// Nothing is deleted: the browser cannot delete rows, and the full data stays for export.
+var SINCE_KEY = "focus-since-" + SESSION, SINCE = 0, MAX_ID = 0;
+try { SINCE = +localStorage.getItem(SINCE_KEY) || 0; } catch(e){}
+function setSince(v){ SINCE = v; try { localStorage.setItem(SINCE_KEY, v); } catch(e){} load(); }
+function veil(on){ ["facts","ask"].forEach(function(id){ $(id).classList.toggle("veiled", on); }); }
+addEventListener("keydown", function(e){
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  var k = e.key;
+  if (k==="ArrowRight" || k==="PageDown" || k===" " || k==="Enter"){ veil(false); e.preventDefault(); }
+  else if (k==="ArrowLeft" || k==="PageUp"){ veil(true); e.preventDefault(); }
+  else if ((k==="r" || k==="R") && confirm("Start a fresh room? The player count goes back to 0. Earlier scores stay saved (press A to show them again).")){ veil(true); setSince(MAX_ID); }
+  else if ((k==="a" || k==="A") && SINCE && confirm("Show every score in this session again?")) setSince(0);
+});
 var ROUNDS = [
   {k:1, name:"Round 1", sub:"Nothing at stake"},
   {k:2, name:"Round 2", sub:"Now it counts"},
@@ -91,7 +112,7 @@ function demoRows(){
 }
 
 function strip(rows, k, axisMax){
-  var W = 1000, H = 110, pad = 14, x = function(v){ return pad + (W-2*pad)*Math.min(v,axisMax)/axisMax; };
+  var W = 1000, H = 80, pad = 14, x = function(v){ return pad + (W-2*pad)*Math.min(v,axisMax)/axisMax; };
   var s = '<svg viewBox="0 0 '+W+' '+(H+26)+'" role="img" aria-label="Scores in round '+k+'">';
   s += '<line x1="'+pad+'" x2="'+(W-pad)+'" y1="'+(H-6)+'" y2="'+(H-6)+'" stroke="var(--line)" stroke-width="2"/>';
   for (var t=0;t<=axisMax;t+=10){
@@ -105,7 +126,7 @@ function strip(rows, k, axisMax){
   }
   rows.forEach(function(r, i){
     var v = r["r"+k+"_score"], id = (r.id != null ? r.id : i);
-    var cy = 36 + (H-50)*hash(id*3+k);
+    var cy = 30 + (H-44)*hash(id*3+k);
     s += '<circle cx="'+x(v)+'" cy="'+cy.toFixed(1)+'" r="7" fill="var(--dot)" fill-opacity="0.72"/>';
   });
   return s + '</svg>';
@@ -114,14 +135,14 @@ function strip(rows, k, axisMax){
 function render(rows){
   $("n").textContent = rows.length;
   $("eye").innerHTML = 'The Focus Game · this room' + (DEMO ? '<span class="tag">SAMPLE DATA</span>' : (SESSION !== (CFG.SESSION||"bridges-2026") ? ' · '+SESSION : ''));
-  if (!rows.length){ $("strips").innerHTML = '<p class="wait">Scan the code and play. Your dots will appear here.</p>'; $("facts").innerHTML = ""; return; }
+  if (!rows.length){ $("strips").innerHTML = '<p class="wait">Scan the code and play. Your dots will appear here.</p>'; $("facts").innerHTML = ""; $("ask").textContent = ""; return; }
   var maxS = Math.max.apply(null, rows.map(function(r){ return Math.max(r.r1_score, r.r2_score, r.r3_score); }));
   var axisMax = Math.max(40, Math.ceil((maxS+2)/10)*10);
   var html = "";
   ROUNDS.forEach(function(R){
     var sc = rows.map(function(r){ return r["r"+R.k+"_score"]; }), fo = rows.map(function(r){ return r["r"+R.k+"_focus"]; });
     html += '<div class="strip"><div class="lab"><span>'+R.name+'</span><b>'+R.sub+'</b></div>'+strip(rows, R.k, axisMax)+
-      '<div class="num"><b>'+Math.round(mean(sc))+' pts</b><span>average score</span><b style="margin-top:6px">'+Math.round(mean(fo))+'%</b><span>real focus</span></div></div>';
+      '<div class="num"><div><b>'+Math.round(mean(sc))+' pts</b><span>average score</span></div><div><b>'+Math.round(mean(fo))+'%</b><span>real focus</span></div></div></div>';
   });
   $("strips").innerHTML = html;
 
@@ -139,25 +160,38 @@ function render(rows){
   $("headline").textContent = above.length
     ? above.length + (above.length===1 ? " person" : " people") + " crossed the line. Nobody could do it honestly."
     : "Nobody crossed the line. The most anyone could score honestly was 9.";
-  var facts = '';
-  facts += '<div class="fact"><b>'+r1above+'</b><span>people reached 25 when nothing was at stake</span></div>';
-  facts += '<div class="fact hot"><b>'+above.length+' <span style="display:inline;font-size:.45em;color:var(--muted)">('+pct+'%)</span></b><span>crossed the line once it counted</span></div>';
-  facts += '<div class="fact hot"><b>'+s1+' → '+s2+'</b><span>average score, round 1 → round 2</span></div>';
-  facts += '<div class="fact"><b>'+f1+'% → '+f2+'%</b><span>real focus, round 1 → round 2</span></div>';
-  $("facts").innerHTML = facts;
+  var f3 = Math.round(mean(rows.map(function(r){ return r.r3_focus; })));
+  var gamed = s2 > s1 && f2 < f1;
+  $("facts").innerHTML =
+    '<div class="fact"><h2>1 · A measurement</h2><b>'+f1+'% <small>real focus</small></b>' +
+      '<span>Nothing at stake. Average score '+s1+'; '+r1above+' reached 25. The score tells us about focus.</span></div>' +
+    '<div class="fact hot"><h2>2 · A social technology</h2><b>'+s1+' → '+s2+' <small>pts</small></b>' +
+      '<span>We added a <b style="display:inline;font:inherit;color:var(--fg)">comparison</b>, a <b style="display:inline;font:inherit;color:var(--fg)">cut-off line</b> and a <b style="display:inline;font:inherit;color:var(--fg)">consequence</b>. ' +
+      above.length+' ('+pct+'%) crossed the line. ' +
+      (gamed ? 'Real focus fell, '+f1+'% → '+f2+'%. People changed, so the score stopped meaning focus.'
+             : 'The line could only be crossed by playing the rule, not by focusing harder.') + '</span></div>' +
+    '<div class="fact"><h2>3 · Checks and appeals</h2><b>'+f3+'% <small>real focus</small></b>' +
+      '<span>Fairer rules, and the score means something again. Every score has an expiry date: people change when they are measured.</span></div>';
+  $("ask").textContent = "Ask of any score: Compared with whom? Who drew the line? What happens to the people below it?";
+  fit();
   if (above.length && below.length) $("status").textContent = "Round 2 real focus — above the line: "+fa+"%, below the line: "+fb+"%. Updated "+new Date().toLocaleTimeString();
   else $("status").textContent = "Updated " + new Date().toLocaleTimeString();
 }
 
+function fit(){
+  var b = document.body; b.style.zoom = 1;
+  if (innerWidth > 760 && b.scrollHeight > innerHeight) b.style.zoom = innerHeight / b.scrollHeight;
+}
+addEventListener("resize", fit);
 function authHeaders(h){ h = h || {}; h.apikey = CFG.SUPABASE_KEY; if (/^eyJ/.test(CFG.SUPABASE_KEY)) h.Authorization = "Bearer " + CFG.SUPABASE_KEY; return h; }
 function load(){
   if (DEMO){ render(demoRows()); $("status").textContent = "Sample data for rehearsal. Remove ?demo=1 for the real room."; return; }
   if (!CFG.SUPABASE_URL || !CFG.SUPABASE_KEY){ $("status").textContent = "Not connected: add the Supabase URL and key to config.js."; render([]); return; }
   var url = CFG.SUPABASE_URL.replace(/\/$/,"") + "/rest/v1/plays?select=id,r1_score,r1_focus,r2_score,r2_focus,r3_score,r3_focus&session=eq."
-          + encodeURIComponent(SESSION) + "&order=id.asc&limit=5000";
+          + encodeURIComponent(SESSION) + "&order=id.asc&limit=5000&id=gt." + SINCE;
   fetch(url, {headers:authHeaders()})
     .then(function(r){ if (!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
-    .then(render)
+    .then(function(rows){ if (rows.length) MAX_ID = Math.max(MAX_ID, rows[rows.length-1].id); render(rows); })
     .catch(function(e){ $("status").textContent = "Could not load scores ("+e.message+"). Retrying…"; });
 }
 load();
