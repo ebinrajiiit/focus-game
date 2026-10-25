@@ -1,0 +1,339 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Focus Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --petrol:#173F4A; --petrol-deep:#102E36; --brass:#B0832E; --brass-hi:#D4A754; --brass-dark:#8A6420;
+  --paper:#F6F1E7; --paper-deep:#EDE5D3; --ink:#14262C; --muted:#55666B; --mist:#C9D6D6; --card:#FBF8F1;
+  --bg:var(--paper); --fg:var(--ink); --surface:var(--card); --line:#DCD2BD; --accent:var(--petrol); --accent-fg:var(--paper);
+  --grey-dot:#9AA6A8; --alert:#9B3B2B;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1F24; --fg:#EDE5D3; --surface:#14303A; --line:#24464F; --accent:#D4A754; --accent-fg:#102E36;
+    --muted:#9FB0B3; --grey-dot:#5E7176; --alert:#E08A75;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1F24; --fg:#EDE5D3; --surface:#14303A; --line:#24464F; --accent:#D4A754; --accent-fg:#102E36;
+  --muted:#9FB0B3; --grey-dot:#5E7176; --alert:#E08A75;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:17px;line-height:1.5;
+  -webkit-tap-highlight-color:transparent;overflow-x:hidden}
+main{max-width:520px;margin:0 auto;min-height:100%;padding:24px 16px 40px;display:flex;flex-direction:column}
+.eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--brass-dark);font-weight:600}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .eyebrow{color:var(--brass-hi)}}
+:root[data-theme="dark"] .eyebrow{color:var(--brass-hi)}
+h1,h2{font-family:'Fraunces',Georgia,serif;font-weight:400;line-height:1.15}
+h1{font-size:40px;margin:8px 0 12px}
+h2{font-size:30px;margin:6px 0 12px}
+p{margin:0 0 12px}
+.muted{color:var(--muted)}
+.screen{display:none;flex-direction:column;flex:1}
+.screen.on{display:flex}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 18px 8px;margin:14px 0}
+.card.rule{border-top:6px solid var(--brass)}
+.card.calm{border-top:6px solid var(--accent)}
+.card.check{border-top:6px solid var(--mist)}
+.three{display:flex;flex-direction:column;gap:6px;margin:4px 0 12px}
+.three div{display:flex;gap:10px;align-items:baseline}
+.three b{min-width:96px;font-weight:600}
+.btn{appearance:none;border:0;border-radius:999px;background:var(--accent);color:var(--accent-fg);font:600 18px 'IBM Plex Sans',sans-serif;
+  padding:16px 22px;width:100%;margin-top:auto;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line);margin-top:10px}
+.spacer{flex:1;min-height:12px}
+
+/* play */
+#play{user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.hud{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px}
+.score{font-family:'Fraunces',serif;font-size:56px;line-height:1}
+.score small{font-family:'IBM Plex Sans';font-size:13px;color:var(--muted);display:block;letter-spacing:.1em;text-transform:uppercase}
+.meter{height:12px;border-radius:6px;background:var(--line);position:relative;margin:4px 0 18px;overflow:visible}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--accent);width:0;transition:width .12s}
+.meter .cut{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--alert)}
+.meter .cutlab{position:absolute;top:16px;font-size:12px;color:var(--alert);transform:translateX(-50%);white-space:nowrap;font-weight:600}
+.pad{flex:1;min-height:300px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:var(--surface);border:1px solid var(--line);cursor:pointer}
+.dot{width:min(62vw,240px);height:min(62vw,240px);border-radius:50%;background:var(--grey-dot);transition:background .05s, transform .06s}
+.dot.gold{background:var(--brass-hi);box-shadow:0 0 0 10px rgba(212,167,84,.18)}
+.dot.hit{transform:scale(.94)}
+.timer{height:6px;background:var(--line);border-radius:3px;margin-top:14px;overflow:hidden}
+.timer i{display:block;height:100%;background:var(--brass);width:100%}
+.hint{text-align:center;font-size:14px;color:var(--muted);margin-top:8px}
+
+/* results */
+table{width:100%;border-collapse:collapse;margin:6px 0 12px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 6px;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{font-family:'Fraunces',serif;font-size:24px}
+.bars{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;margin:8px 0 14px;font-size:14px}
+.bar{height:14px;border-radius:7px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%}
+.bar i.s{background:var(--accent)} .bar i.f{background:var(--brass)}
+.verdict{font-family:'Fraunces',serif;font-size:24px;line-height:1.25;margin:6px 0 10px}
+.big{font-family:'Fraunces',serif;font-size:72px;line-height:1;text-align:center;margin:30px 0 6px}
+.qa{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}
+.qa div{padding-left:14px;border-left:3px solid var(--brass)}
+</style>
+</head>
+<body>
+<main>
+
+<!-- INTRO -->
+<section class="screen on" id="s-intro">
+  <p class="eyebrow">BRIDGES · Mainz · live game</p>
+  <h1>The Focus Game</h1>
+  <p>Three short rounds, 15 seconds each. A circle flashes. <b>Tap when it turns gold.</b></p>
+  <p class="muted">Your score stays on your phone. Nothing is sent anywhere.</p>
+  <div class="card calm">
+    <p class="eyebrow">How it works</p>
+    <div class="three">
+      <div><b>Round 1</b><span>Nothing at stake</span></div>
+      <div><b>Round 2</b><span>Now it counts</span></div>
+      <div><b>Round 3</b><span>Checks and appeals</span></div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" data-go="brief1">I’m ready</button>
+</section>
+
+<!-- BRIEFS -->
+<section class="screen" id="s-brief1">
+  <p class="eyebrow">Round 1 of 3</p>
+  <h2>Nothing at stake</h2>
+  <div class="card calm">
+    <p>Tap <b>once</b> each time the circle turns gold.</p>
+    <p class="muted">Only you see your score.</p>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" data-round="1">Start round 1</button>
+</section>
+
+<section class="screen" id="s-brief2">
+  <p class="eyebrow">Round 2 of 3</p>
+  <h2>Now it counts</h2>
+  <div class="card rule">
+    <div class="three">
+      <div><b>Comparison</b><span>Your score is compared with the room.</span></div>
+      <div><b>Cut-off line</b><span>Below <b>25 points</b> is “low focus”.</span></div>
+      <div><b>Consequence</b><span>Low-focus seats are flagged for “focus coaching”.</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <p class="eyebrow">How the score is counted</p>
+    <p>Every tap while the circle is gold: <b>+1</b>.<br>Taps on grey are not counted.</p>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" data-round="2">Start round 2</button>
+</section>
+
+<section class="screen" id="s-brief3">
+  <p class="eyebrow">Round 3 of 3</p>
+  <h2>Checks and appeals</h2>
+  <div class="card check">
+    <p>Someone now checks how the score was earned.</p>
+    <div class="three">
+      <div><b>Gold</b><span>Only one tap per gold counts.</span></div>
+      <div><b>Grey</b><span>Each tap on grey costs <b>2 points</b>.</span></div>
+      <div><b>The line</b><span>Still 25 points.</span></div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" data-round="3">Start round 3</button>
+</section>
+
+<!-- PLAY -->
+<section class="screen" id="s-play">
+  <div class="hud">
+    <div><p class="eyebrow" id="p-round">Round 1</p><p class="muted" id="p-sub" style="font-size:14px;margin:0">Nothing at stake</p></div>
+    <div class="score" id="p-score">0<small>points</small></div>
+  </div>
+  <div class="meter" id="p-meter"><i></i><span class="cut" style="display:none"></span><span class="cutlab" style="display:none">line: 25</span></div>
+  <div class="pad" id="play" role="button" aria-label="Tap when the circle is gold"><div class="dot" id="dot"></div></div>
+  <div class="timer"><i id="p-timer"></i></div>
+  <p class="hint" id="p-hint">Tap anywhere on the panel when the circle is gold</p>
+</section>
+
+<!-- BETWEEN -->
+<section class="screen" id="s-between">
+  <p class="eyebrow" id="b-eye">Round 1 done</p>
+  <div class="big" id="b-score">0</div>
+  <p style="text-align:center" class="muted">points</p>
+  <p style="text-align:center;margin-top:10px" id="b-line"></p>
+  <div class="spacer"></div>
+  <button class="btn" id="b-next">Next round</button>
+</section>
+
+<!-- RESULTS -->
+<section class="screen" id="s-results">
+  <p class="eyebrow">Your three rounds</p>
+  <h2 id="r-verdict-h">Here is what the score did</h2>
+  <table>
+    <thead><tr><th>Round</th><th>Score</th><th>Real focus</th></tr></thead>
+    <tbody id="r-body"></tbody>
+  </table>
+  <div class="bars" id="r-bars"></div>
+  <p class="verdict" id="r-verdict"></p>
+  <p class="muted" style="font-size:15px">“Real focus” is the share of gold flashes you caught, minus the grey flashes you tapped. The score is what the system counted.</p>
+  <div class="card rule">
+    <p class="eyebrow">Now answer in the poll</p>
+    <div class="qa">
+      <div>Did your score go up in round 2?</div>
+      <div>Did you play differently once there was a line?</div>
+    </div>
+    <p id="r-pollnote" class="muted" style="font-size:15px">Use the poll code on the big screen.</p>
+  </div>
+  <p class="muted" style="font-size:14px">Nobody was flagged. The line was invented thirty seconds ago. That is the point.</p>
+  <a class="btn" id="r-poll" href="#" target="_blank" rel="noopener" style="display:none;text-align:center;text-decoration:none">Open the poll</a>
+  <button class="btn ghost" id="r-again">Play again</button>
+</section>
+
+</main>
+<script>
+// ---- Settings: set POLL_URL to your ParrotPoll link (or pass ?poll=<url>) ----
+var POLL_URL = "";
+try { var q = new URLSearchParams(location.search).get("poll"); if (q && /^https:\/\//.test(q)) POLL_URL = q; } catch(e){}
+
+var ROUND_MS = 15000, FLASH_MS = 600, CUTOFF = 25;
+var ROUNDS = {
+  1:{name:"Round 1", sub:"Nothing at stake", seed:11, line:false},
+  2:{name:"Round 2", sub:"Now it counts", seed:22, line:true},
+  3:{name:"Round 3", sub:"Checks and appeals", seed:33, line:true}
+};
+var results = {};
+
+function rng(seed){ var s = seed >>> 0; return function(){ s = (s*1664525 + 1013904223) >>> 0; return s/4294967296; }; }
+// Same sequence for everyone in the room: 25 flashes, 9 gold, never 3 golds in a row, never gold first.
+function makeSeq(seed){
+  var n = Math.floor(ROUND_MS/FLASH_MS), r = rng(seed), seq;
+  for (var tries=0; tries<500; tries++){
+    seq = []; for (var i=0;i<n;i++) seq.push(r() < 0.36);
+    var g = seq.filter(Boolean).length, ok = g===9 && !seq[0];
+    for (var j=2;j<n;j++) if (seq[j]&&seq[j-1]&&seq[j-2]) ok=false;
+    if (ok) return seq;
+  }
+  return seq;
+}
+
+function $(id){ return document.getElementById(id); }
+function show(id){ document.querySelectorAll(".screen").forEach(function(s){ s.classList.toggle("on", s.id==="s-"+id); }); window.scrollTo(0,0); }
+document.querySelectorAll("[data-go]").forEach(function(b){ b.onclick = function(){ show(b.dataset.go); }; });
+document.querySelectorAll("[data-round]").forEach(function(b){ b.onclick = function(){ play(+b.dataset.round); }; });
+
+var state = null;
+function scoreOf(round, st){
+  if (round===1) return st.caught;
+  if (round===2) return st.goldTaps;
+  return Math.max(0, st.caught - 2*st.greyTaps);
+}
+function focusOf(st, golds){
+  return Math.max(0, Math.round(100*(st.caught - st.greyFlashesTapped)/golds));
+}
+
+function play(round){
+  var cfg = ROUNDS[round], seq = makeSeq(cfg.seed), golds = seq.filter(Boolean).length;
+  $("p-round").textContent = cfg.name; $("p-sub").textContent = cfg.sub;
+  var cut = document.querySelector("#p-meter .cut"), lab = document.querySelector("#p-meter .cutlab");
+  var scaleMax = round===2 ? 60 : 30;
+  cut.style.display = lab.style.display = cfg.line ? "block" : "none";
+  cut.style.left = lab.style.left = (100*CUTOFF/scaleMax)+"%";
+  $("p-hint").textContent = round===2 ? "Every tap on gold counts" : round===3 ? "Grey taps now cost 2 points" : "Tap once when the circle is gold";
+  state = {round:round, seq:seq, idx:-1, caught:0, goldTaps:0, greyTaps:0, greyFlashesTapped:0,
+           tappedThis:false, start:0, scaleMax:scaleMax, golds:golds, done:false};
+  updateHud();
+  show("play");
+  var dot = $("dot"); dot.className = "dot";
+  // short lead-in so nobody is caught mid-scroll
+  setTimeout(function(){ state.start = performance.now(); tick(); }, 700);
+}
+
+function tick(){
+  if (!state || state.done) return;
+  var t = performance.now() - state.start;
+  var idx = Math.floor(t / FLASH_MS);
+  $("p-timer").style.width = Math.max(0, 100 - 100*t/ROUND_MS) + "%";
+  if (idx >= state.seq.length){ finish(); return; }
+  if (idx !== state.idx){
+    state.idx = idx; state.tappedThis = false;
+    $("dot").className = "dot" + (state.seq[idx] ? " gold" : "");
+  }
+  requestAnimationFrame(tick);
+}
+
+function onTap(e){
+  if (!state || state.done || state.idx < 0) return;
+  e.preventDefault();
+  var gold = state.seq[state.idx];
+  if (gold){
+    state.goldTaps++;
+    if (!state.tappedThis) state.caught++;
+  } else {
+    state.greyTaps++;
+    if (!state.tappedThis) state.greyFlashesTapped++;
+  }
+  state.tappedThis = true;
+  var d = $("dot"); d.classList.add("hit"); setTimeout(function(){ d.classList.remove("hit"); }, 70);
+  try { if (navigator.vibrate) navigator.vibrate(8); } catch(_){}
+  updateHud();
+}
+$("play").addEventListener("pointerdown", onTap);
+
+function updateHud(){
+  var s = scoreOf(state.round, state);
+  $("p-score").firstChild.nodeValue = s;
+  document.querySelector("#p-meter i").style.width = Math.min(100, 100*s/state.scaleMax) + "%";
+}
+
+function finish(){
+  state.done = true;
+  var r = state.round, s = scoreOf(r, state), f = focusOf(state, state.golds);
+  results[r] = {score:s, focus:f, taps:state.goldTaps+state.greyTaps};
+  $("dot").className = "dot";
+  if (r === 3){ renderResults(); show("results"); return; }
+  $("b-eye").textContent = "Round " + r + " done";
+  $("b-score").textContent = s;
+  $("b-line").textContent = r===1 ? "Next, the score starts to matter." :
+    (s >= CUTOFF ? "Above the line. You will not be flagged." : "Below the line. Your seat would be flagged.");
+  $("b-next").onclick = function(){ show("brief"+(r+1)); };
+  show("between");
+}
+
+function renderResults(){
+  var body = "", bars = "";
+  var maxS = Math.max(1, results[1].score, results[2].score, results[3].score);
+  [1,2,3].forEach(function(r){
+    body += "<tr><td>"+ROUNDS[r].sub+"</td><td class='n'>"+results[r].score+"</td><td class='n'>"+results[r].focus+"%</td></tr>";
+    bars += "<span>R"+r+" score</span><div class='bar'><i class='s' style='width:"+(100*results[r].score/maxS)+"%'></i></div>";
+    bars += "<span>R"+r+" focus</span><div class='bar'><i class='f' style='width:"+results[r].focus+"%'></i></div>";
+  });
+  $("r-body").innerHTML = body; $("r-bars").innerHTML = bars;
+  var a = results[1], b = results[2], c = results[3], v, h;
+  var scoreUp = b.score >= a.score + 4, meaningDown = b.focus <= a.focus - 15;
+  if (scoreUp && meaningDown){
+    h = "Your score went up. What it meant went down.";
+    v = "In round 2 your score rose from "+a.score+" to "+b.score+", while your real focus fell from "+a.focus+"% to "+b.focus+"%. You learned what was counted, and you gave it what it counted. That is the loop.";
+  } else if (scoreUp){
+    h = "Your score went up.";
+    v = "Your score rose from "+a.score+" to "+b.score+". Did your attention really improve, or did you learn what the score was counting?";
+  } else {
+    h = "You held steady.";
+    v = "You played round 2 the way you played round 1. Look at the room’s answers: many people did not.";
+  }
+  if (c.focus >= b.focus + 15) v += " Once someone checked, your focus came back to "+c.focus+"%.";
+  $("r-verdict-h").textContent = h; $("r-verdict").textContent = v;
+  if (POLL_URL){ var p = $("r-poll"); p.href = POLL_URL; p.style.display = "block"; $("r-pollnote").textContent = "Tap the button below, or use the code on the big screen."; }
+}
+$("r-again").onclick = function(){ results = {}; show("brief1"); };
+</script>
+</body>
+</html>
+
+</body></html>
