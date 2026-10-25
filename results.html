@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Room, Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#102E36; --panel:#173F4A; --fg:#F6F1E7; --muted:#9FB0B3; --mist:#C9D6D6;
+  --brass:#B0832E; --brass-hi:#D4A754; --line:#2A5560; --alert:#E08A75; --dot:#EDE5D3;
+}
+:root[data-theme="light"]{
+  --bg:#F6F1E7; --panel:#FBF8F1; --fg:#14262C; --muted:#55666B; --mist:#4F7782;
+  --brass:#8A6420; --brass-hi:#B0832E; --line:#DCD2BD; --alert:#9B3B2B; --dot:#173F4A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans',system-ui,sans-serif;min-height:100vh}
+main{max-width:1760px;margin:0 auto;padding:clamp(16px,3vw,56px) clamp(16px,4vw,72px);display:flex;flex-direction:column;gap:clamp(14px,2vw,28px)}
+.eyebrow{font-size:clamp(12px,1.1vw,20px);letter-spacing:.2em;text-transform:uppercase;color:var(--brass-hi);font-weight:600}
+h1{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:clamp(28px,3.6vw,68px);line-height:1.08}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+.top>div:first-child{flex:1;min-width:0}
+.count{font-family:'Fraunces',serif;font-size:clamp(36px,4.4vw,84px);line-height:1;text-align:right}
+.count small{display:block;font-family:'IBM Plex Sans';font-size:clamp(12px,1vw,18px);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+.strips{display:flex;flex-direction:column;gap:clamp(8px,1vw,14px)}
+.strip{display:grid;grid-template-columns:clamp(120px,14vw,260px) 1fr clamp(110px,11vw,200px);gap:clamp(10px,1.4vw,24px);align-items:center;background:var(--panel);border-radius:10px;padding:clamp(10px,1.2vw,18px) clamp(12px,1.4vw,22px)}
+.strip .lab b{display:block;font-family:'Fraunces',serif;font-weight:400;font-size:clamp(18px,1.8vw,32px)}
+.strip .lab span{font-size:clamp(11px,.9vw,16px);color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.strip svg{width:100%;height:auto;display:block}
+.strip .num{text-align:right}
+.strip .num b{display:block;font-family:'Fraunces',serif;font-weight:400;font-size:clamp(22px,2.4vw,44px);line-height:1.05}
+.strip .num span{font-size:clamp(11px,.85vw,15px);color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(8px,1vw,16px)}
+.fact{background:var(--panel);border-radius:10px;padding:clamp(12px,1.4vw,22px);border-top:5px solid var(--mist)}
+.fact.hot{border-top-color:var(--brass-hi)}
+.fact b{display:block;font-family:'Fraunces',serif;font-weight:400;font-size:clamp(26px,3vw,56px);line-height:1}
+.fact span{display:block;margin-top:8px;font-size:clamp(12px,1vw,19px);color:var(--mist);line-height:1.35}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:clamp(11px,.85vw,15px);color:var(--muted)}
+.tag{display:inline-block;background:var(--alert);color:#102E36;font-weight:600;padding:2px 10px;border-radius:999px;margin-left:10px;font-size:.8em;letter-spacing:.1em}
+.wait{font-family:'Fraunces',serif;font-size:clamp(22px,2.4vw,40px);color:var(--muted);padding:40px 0}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:4px 12px;font:inherit;cursor:pointer}
+@media (max-width:760px){ .facts{grid-template-columns:1fr 1fr} .strip{grid-template-columns:1fr} .strip .num{text-align:left} }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <p class="eyebrow" id="eye">The Focus Game · this room</p>
+      <h1 id="headline">Waiting for the first scores…</h1>
+    </div>
+    <div class="count"><span id="n">0</span><small>players</small></div>
+  </div>
+  <div class="strips" id="strips"></div>
+  <div class="facts" id="facts"></div>
+  <div class="foot">
+    <span id="status">Connecting…</span>
+    <span>Each dot is one person. Anonymous scores only. <button class="ghost" id="theme">Light / dark</button></span>
+  </div>
+</main>
+<script src="config.js"></script>
+<script>
+var CFG = window.FOCUS_CONFIG || {}, CUTOFF = 25, HONEST_MAX = 9;
+var qs = new URLSearchParams(location.search);
+var SESSION = (qs.get("s") && /^[\w-]{1,40}$/.test(qs.get("s"))) ? qs.get("s") : (CFG.SESSION || "bridges-2026");
+var DEMO = qs.get("demo") === "1";
+var ROUNDS = [
+  {k:1, name:"Round 1", sub:"Nothing at stake"},
+  {k:2, name:"Round 2", sub:"Now it counts"},
+  {k:3, name:"Round 3", sub:"Checks and appeals"}
+];
+document.getElementById("theme").onclick = function(){
+  var r = document.documentElement; r.dataset.theme = r.dataset.theme === "light" ? "dark" : "light";
+};
+function $(id){ return document.getElementById(id); }
+function mean(a){ return a.length ? a.reduce(function(s,x){return s+x;},0)/a.length : 0; }
+function hash(i){ var x = Math.sin(i*12.9898)*43758.5453; return x - Math.floor(x); }
+
+function demoRows(){
+  var rows = [];
+  for (var i=0;i<140;i++){
+    var gamer = hash(i+1) < 0.62, r1 = 6 + Math.round(hash(i+7)*3);
+    var r2 = gamer ? 22 + Math.round(hash(i+3)*34) : r1 + Math.round(hash(i+5)*2);
+    var f1 = 70 + Math.round(hash(i+9)*30), f2 = gamer ? Math.round(hash(i+11)*30) : f1 - Math.round(hash(i+2)*10);
+    var r3 = Math.max(0, r1 - Math.round(hash(i+4)*4)), f3 = Math.max(0, f1 - Math.round(hash(i+6)*20));
+    rows.push({id:i, r1_score:r1, r1_focus:f1, r2_score:r2, r2_focus:f2, r3_score:r3, r3_focus:f3});
+  }
+  return rows;
+}
+
+function strip(rows, k, axisMax){
+  var W = 1000, H = 110, pad = 14, x = function(v){ return pad + (W-2*pad)*Math.min(v,axisMax)/axisMax; };
+  var s = '<svg viewBox="0 0 '+W+' '+(H+26)+'" role="img" aria-label="Scores in round '+k+'">';
+  s += '<line x1="'+pad+'" x2="'+(W-pad)+'" y1="'+(H-6)+'" y2="'+(H-6)+'" stroke="var(--line)" stroke-width="2"/>';
+  for (var t=0;t<=axisMax;t+=10){
+    s += '<text x="'+x(t)+'" y="'+(H+18)+'" text-anchor="middle" font-size="16" fill="var(--muted)">'+t+'</text>';
+  }
+  s += '<line x1="'+x(HONEST_MAX)+'" x2="'+x(HONEST_MAX)+'" y1="4" y2="'+(H-6)+'" stroke="var(--mist)" stroke-width="2" stroke-dasharray="5 5"/>';
+  if (k===1) s += '<text x="'+(x(HONEST_MAX)+8)+'" y="18" font-size="16" fill="var(--mist)">most you can score honestly: 9</text>';
+  if (k!==1){
+    s += '<line x1="'+x(CUTOFF)+'" x2="'+x(CUTOFF)+'" y1="0" y2="'+(H-6)+'" stroke="var(--alert)" stroke-width="4"/>';
+    s += '<text x="'+(x(CUTOFF)+8)+'" y="18" font-size="17" font-weight="600" fill="var(--alert)">line: 25</text>';
+  }
+  rows.forEach(function(r, i){
+    var v = r["r"+k+"_score"], id = (r.id != null ? r.id : i);
+    var cy = 36 + (H-50)*hash(id*3+k);
+    s += '<circle cx="'+x(v)+'" cy="'+cy.toFixed(1)+'" r="7" fill="var(--dot)" fill-opacity="0.72"/>';
+  });
+  return s + '</svg>';
+}
+
+function render(rows){
+  $("n").textContent = rows.length;
+  $("eye").innerHTML = 'The Focus Game · this room' + (DEMO ? '<span class="tag">SAMPLE DATA</span>' : (SESSION !== (CFG.SESSION||"bridges-2026") ? ' · '+SESSION : ''));
+  if (!rows.length){ $("strips").innerHTML = '<p class="wait">Scan the code and play. Your dots will appear here.</p>'; $("facts").innerHTML = ""; return; }
+  var maxS = Math.max.apply(null, rows.map(function(r){ return Math.max(r.r1_score, r.r2_score, r.r3_score); }));
+  var axisMax = Math.max(40, Math.ceil((maxS+2)/10)*10);
+  var html = "";
+  ROUNDS.forEach(function(R){
+    var sc = rows.map(function(r){ return r["r"+R.k+"_score"]; }), fo = rows.map(function(r){ return r["r"+R.k+"_focus"]; });
+    html += '<div class="strip"><div class="lab"><span>'+R.name+'</span><b>'+R.sub+'</b></div>'+strip(rows, R.k, axisMax)+
+      '<div class="num"><b>'+Math.round(mean(sc))+' pts</b><span>average score</span><b style="margin-top:6px">'+Math.round(mean(fo))+'%</b><span>real focus</span></div></div>';
+  });
+  $("strips").innerHTML = html;
+
+  var above = rows.filter(function(r){ return r.r2_score >= CUTOFF; });
+  var below = rows.filter(function(r){ return r.r2_score < CUTOFF; });
+  var r1above = rows.filter(function(r){ return r.r1_score >= CUTOFF; }).length;
+  var pct = Math.round(100*above.length/rows.length);
+  var fa = Math.round(mean(above.map(function(r){ return r.r2_focus; })));
+  var fb = Math.round(mean(below.map(function(r){ return r.r2_focus; })));
+  var f1 = Math.round(mean(rows.map(function(r){ return r.r1_focus; })));
+  var f2 = Math.round(mean(rows.map(function(r){ return r.r2_focus; })));
+  var s1 = Math.round(mean(rows.map(function(r){ return r.r1_score; })));
+  var s2 = Math.round(mean(rows.map(function(r){ return r.r2_score; })));
+
+  $("headline").textContent = above.length
+    ? above.length + (above.length===1 ? " person" : " people") + " crossed the line. Nobody could do it honestly."
+    : "Nobody crossed the line. The most anyone could score honestly was 9.";
+  var facts = '';
+  facts += '<div class="fact"><b>'+r1above+'</b><span>people reached 25 when nothing was at stake</span></div>';
+  facts += '<div class="fact hot"><b>'+above.length+' <span style="display:inline;font-size:.45em;color:var(--muted)">('+pct+'%)</span></b><span>crossed the line once it counted</span></div>';
+  facts += '<div class="fact hot"><b>'+s1+' → '+s2+'</b><span>average score, round 1 → round 2</span></div>';
+  facts += '<div class="fact"><b>'+f1+'% → '+f2+'%</b><span>real focus, round 1 → round 2</span></div>';
+  $("facts").innerHTML = facts;
+  if (above.length && below.length) $("status").textContent = "Round 2 real focus — above the line: "+fa+"%, below the line: "+fb+"%. Updated "+new Date().toLocaleTimeString();
+  else $("status").textContent = "Updated " + new Date().toLocaleTimeString();
+}
+
+function authHeaders(h){ h = h || {}; h.apikey = CFG.SUPABASE_KEY; if (/^eyJ/.test(CFG.SUPABASE_KEY)) h.Authorization = "Bearer " + CFG.SUPABASE_KEY; return h; }
+function load(){
+  if (DEMO){ render(demoRows()); $("status").textContent = "Sample data for rehearsal. Remove ?demo=1 for the real room."; return; }
+  if (!CFG.SUPABASE_URL || !CFG.SUPABASE_KEY){ $("status").textContent = "Not connected: add the Supabase URL and key to config.js."; render([]); return; }
+  var url = CFG.SUPABASE_URL.replace(/\/$/,"") + "/rest/v1/plays?select=id,r1_score,r1_focus,r2_score,r2_focus,r3_score,r3_focus&session=eq."
+          + encodeURIComponent(SESSION) + "&order=id.asc&limit=5000";
+  fetch(url, {headers:authHeaders()})
+    .then(function(r){ if (!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(render)
+    .catch(function(e){ $("status").textContent = "Could not load scores ("+e.message+"). Retrying…"; });
+}
+load();
+if (!DEMO) setInterval(load, 3000);
+</script>
+</body>
+</html>
