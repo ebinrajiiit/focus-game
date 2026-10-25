@@ -1,4 +1,3 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!doctype html>
 <html lang="en">
 <head>
@@ -92,7 +91,7 @@ td.n{font-family:'Fraunces',serif;font-size:24px}
   <p class="eyebrow">BRIDGES · Mainz · live game</p>
   <h1>The Focus Game</h1>
   <p>Three short rounds, 15 seconds each. A circle flashes. <b>Tap when it turns gold.</b></p>
-  <p class="muted">Your score stays on your phone. Nothing is sent anywhere.</p>
+  <p class="muted">At the end, your three scores are sent to the room screen anonymously: no name, no device ID, nothing else.</p>
   <div class="card calm">
     <p class="eyebrow">How it works</p>
     <div class="three">
@@ -191,16 +190,47 @@ td.n{font-family:'Fraunces',serif;font-size:24px}
     </div>
     <p id="r-pollnote" class="muted" style="font-size:15px">Use the poll code on the big screen.</p>
   </div>
+  <p class="muted" id="r-sent" style="font-size:14px;color:var(--fg)"></p>
   <p class="muted" style="font-size:14px">Nobody was flagged. The line was invented thirty seconds ago. That is the point.</p>
   <a class="btn" id="r-poll" href="#" target="_blank" rel="noopener" style="display:none;text-align:center;text-decoration:none">Open the poll</a>
   <button class="btn ghost" id="r-again">Play again</button>
 </section>
 
 </main>
+<script src="config.js"></script>
 <script>
-// ---- Settings: set POLL_URL to your ParrotPoll link (or pass ?poll=<url>) ----
-var POLL_URL = "";
-try { var q = new URLSearchParams(location.search).get("poll"); if (q && /^https:\/\//.test(q)) POLL_URL = q; } catch(e){}
+var CFG = window.FOCUS_CONFIG || {};
+var POLL_URL = CFG.POLL_URL || "", SESSION = CFG.SESSION || "bridges-2026";
+try {
+  var qs = new URLSearchParams(location.search);
+  var q = qs.get("poll"); if (q && /^https:\/\//.test(q)) POLL_URL = q;
+  var sp = qs.get("s"); if (sp && /^[\w-]{1,40}$/.test(sp)) SESSION = sp;
+} catch(e){}
+var SENT = false;
+function authHeaders(h){ h = h || {}; h.apikey = CFG.SUPABASE_KEY; if (/^eyJ/.test(CFG.SUPABASE_KEY)) h.Authorization = "Bearer " + CFG.SUPABASE_KEY; return h; }
+function sendResults(){
+  if (SENT || !CFG.SUPABASE_URL || !CFG.SUPABASE_KEY) { setSent(SENT ? "sent" : "off"); return; }
+  var row = {session:SESSION,
+    r1_score:results[1].score, r1_focus:results[1].focus,
+    r2_score:results[2].score, r2_focus:results[2].focus,
+    r3_score:results[3].score, r3_focus:results[3].focus,
+    r2_taps:results[2].taps};
+  setSent("sending");
+  function attempt(n){
+    fetch(CFG.SUPABASE_URL.replace(/\/$/,"") + "/rest/v1/plays", {method:"POST",
+      headers:authHeaders({"Content-Type":"application/json","Prefer":"return=minimal"}),
+      body:JSON.stringify(row)})
+    .then(function(r){ if (!r.ok) throw new Error(r.status); SENT = true; setSent("sent"); })
+    .catch(function(){ if (n < 2) setTimeout(function(){ attempt(n+1); }, 1500*(n+1)); else setSent("failed"); });
+  }
+  attempt(0);
+}
+function setSent(st){
+  var el = document.getElementById("r-sent"); if (!el) return;
+  el.textContent = st==="sent" ? "Your scores are on the room screen." :
+                   st==="sending" ? "Sending your scores to the room screen…" :
+                   st==="failed" ? "Could not reach the room screen. Your scores are still shown here." : "";
+}
 
 var ROUND_MS = 15000, FLASH_MS = 600, CUTOFF = 25;
 var ROUNDS = {
@@ -297,7 +327,7 @@ function finish(){
   var r = state.round, s = scoreOf(r, state), f = focusOf(state, state.golds);
   results[r] = {score:s, focus:f, taps:state.goldTaps+state.greyTaps};
   $("dot").className = "dot";
-  if (r === 3){ renderResults(); show("results"); return; }
+  if (r === 3){ renderResults(); show("results"); sendResults(); return; }
   $("b-eye").textContent = "Round " + r + " done";
   $("b-score").textContent = s;
   $("b-line").textContent = r===1 ? "Next, the score starts to matter." :
@@ -331,9 +361,7 @@ function renderResults(){
   $("r-verdict-h").textContent = h; $("r-verdict").textContent = v;
   if (POLL_URL){ var p = $("r-poll"); p.href = POLL_URL; p.style.display = "block"; $("r-pollnote").textContent = "Tap the button below, or use the code on the big screen."; }
 }
-$("r-again").onclick = function(){ results = {}; show("brief1"); };
+$("r-again").onclick = function(){ results = {}; show("brief1"); }; // a replay is not sent again
 </script>
 </body>
 </html>
-
-</body></html>
