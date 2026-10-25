@@ -72,7 +72,7 @@ var DEMO = qs.get("demo") === "1";
 // Presenter keys: → / PageDown / Space / Enter reveal the explanation, ← / PageUp hide it.
 // R starts a fresh room (shows only scores sent from now on); A shows every score again.
 // Nothing is deleted: the browser cannot delete rows, and the full data stays for export.
-var SINCE_KEY = "focus-since-" + SESSION, SINCE = 0, MAX_ID = 0;
+var SINCE_KEY = "focus-since-" + SESSION + (DEMO ? "-demo" : ""), SINCE = 0, MAX_ID = 0;
 try { SINCE = +localStorage.getItem(SINCE_KEY) || 0; } catch(e){}
 function setSince(v){ SINCE = v; try { localStorage.setItem(SINCE_KEY, v); } catch(e){} load(); }
 function veil(on){ ["facts","ask"].forEach(function(id){ $(id).classList.toggle("veiled", on); }); }
@@ -179,7 +179,7 @@ function fit(){
 addEventListener("resize", fit);
 function authHeaders(h){ h = h || {}; h.apikey = CFG.SUPABASE_KEY; if (/^eyJ/.test(CFG.SUPABASE_KEY)) h.Authorization = "Bearer " + CFG.SUPABASE_KEY; return h; }
 function load(){
-  if (DEMO){ render(demoRows()); $("status").textContent = "Sample data for rehearsal. Remove ?demo=1 for the real room."; return; }
+  if (DEMO){ MAX_ID = 1; render(SINCE ? [] : demoRows()); $("status").textContent = "Sample data for rehearsal. Remove ?demo=1 for the real room."; return; }
   if (!CFG.SUPABASE_URL || !CFG.SUPABASE_KEY){ $("status").textContent = "Not connected: add the Supabase URL and key to config.js."; render([]); return; }
   var url = CFG.SUPABASE_URL.replace(/\/$/,"") + "/rest/v1/plays?select=id,r1_score,r1_focus,r2_score,r2_focus,r3_score,r3_focus&session=eq."
           + encodeURIComponent(SESSION) + "&order=id.asc&limit=5000&id=gt." + SINCE;
