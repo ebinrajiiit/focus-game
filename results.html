@@ -40,6 +40,8 @@ h1{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:clamp(28px,3.6
 .fact strong{color:var(--fg);font-weight:500}
 .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:clamp(11px,.85vw,15px);color:var(--muted)}
 .tag{color:var(--alert)}
+.replays{font-size:clamp(13px,1.05vw,20px);color:var(--muted);margin-top:calc(-1 * clamp(6px,1vw,16px))}
+.replays:empty{display:none}
 .wait{font-family:'Fraunces',serif;font-size:clamp(22px,2.4vw,40px);color:var(--muted);padding:40px 0}
 button.ghost{background:none;border:0;color:var(--muted);text-decoration:underline;font:inherit;cursor:pointer}
 .ask{font-size:clamp(16px,1.5vw,28px);color:var(--fg)}
@@ -56,6 +58,7 @@ button.ghost{background:none;border:0;color:var(--muted);text-decoration:underli
     <div class="count"><span id="n">0</span><small>players</small></div>
   </div>
   <div class="strips" id="strips"></div>
+  <p class="replays" id="replays"></p>
   <div class="facts veiled" id="facts"></div>
   <p class="ask veiled" id="ask"></p>
   <div class="foot">
@@ -103,8 +106,9 @@ function demoRows(){
     var r2 = gamer ? 22 + Math.round(hash(i+3)*34) : r1 + Math.round(hash(i+5)*2);
     var f1 = 70 + Math.round(hash(i+9)*30), f2 = gamer ? Math.round(hash(i+11)*30) : f1 - Math.round(hash(i+2)*10);
     var r3 = Math.max(0, r1 - Math.round(hash(i+4)*4)), f3 = Math.max(0, f1 - Math.round(hash(i+6)*20));
-    rows.push({id:i, r1_score:r1, r1_focus:f1, r2_score:r2, r2_focus:f2, r3_score:r3, r3_focus:f3});
+    rows.push({id:i, attempt:1, r1_score:r1, r1_focus:f1, r2_score:r2, r2_focus:f2, r3_score:r3, r3_focus:f3});
   }
+  for (var j=0;j<14;j++) rows.push({id:140+j, attempt:2, r1_score:8, r1_focus:90, r2_score:34 + Math.round(hash(j+20)*20), r2_focus:20, r3_score:7, r3_focus:80});
   return rows;
 }
 
@@ -129,7 +133,13 @@ function strip(rows, k, axisMax){
   return s + '</svg>';
 }
 
-function render(rows){
+function render(all){
+  // First plays drive every number; replays (attempt > 1) only get their own line.
+  var rows = all.filter(function(r){ return (r.attempt || 1) === 1; });
+  var rep = all.filter(function(r){ return (r.attempt || 1) > 1; });
+  $("replays").textContent = rep.length
+    ? (rep.length===1 ? "1 replay" : rep.length+" replays")+" not counted above. On replays, the average round 2 score was "+Math.round(mean(rep.map(function(r){ return r.r2_score; })))+"."
+    : "";
   $("n").textContent = rows.length;
   $("eye").innerHTML = 'The Focus Game, this room' + (DEMO ? ' <span class="tag">(sample data)</span>' : (SESSION !== (CFG.SESSION||"bridges-2026") ? ' ('+SESSION+')' : ''));
   if (!rows.length){ $("strips").innerHTML = '<p class="wait">Scan the code and play. Your dots will appear here.</p>'; $("facts").innerHTML = ""; $("ask").textContent = ""; return; }
@@ -181,7 +191,7 @@ function authHeaders(h){ h = h || {}; h.apikey = CFG.SUPABASE_KEY; if (/^eyJ/.te
 function load(){
   if (DEMO){ MAX_ID = 1; render(SINCE ? [] : demoRows()); $("status").textContent = "Sample data for rehearsal. Remove ?demo=1 for the real room."; return; }
   if (!CFG.SUPABASE_URL || !CFG.SUPABASE_KEY){ $("status").textContent = "Not connected: add the Supabase URL and key to config.js."; render([]); return; }
-  var url = CFG.SUPABASE_URL.replace(/\/$/,"") + "/rest/v1/plays?select=id,r1_score,r1_focus,r2_score,r2_focus,r3_score,r3_focus&session=eq."
+  var url = CFG.SUPABASE_URL.replace(/\/$/,"") + "/rest/v1/plays?select=id,attempt,r1_score,r1_focus,r2_score,r2_focus,r3_score,r3_focus&session=eq."
           + encodeURIComponent(SESSION) + "&order=id.asc&limit=5000&id=gt." + SINCE;
   fetch(url, {headers:authHeaders()})
     .then(function(r){ if (!r.ok) throw new Error("HTTP "+r.status); return r.json(); })

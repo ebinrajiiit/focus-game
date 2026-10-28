@@ -202,11 +202,13 @@ try {
   var q = qs.get("poll"); if (q && /^https:\/\//.test(q)) POLL_URL = q;
   var sp = qs.get("s"); if (sp && /^[\w-]{1,40}$/.test(sp)) SESSION = sp;
 } catch(e){}
-var SENT = false;
+// Attempt number on this phone (1 = first play). Kept only on the phone so a reload is not a new player.
+var ATTEMPT_KEY = "focus-attempts-" + SESSION;
+function nextAttempt(){ var n = 1; try { n = (+localStorage.getItem(ATTEMPT_KEY) || 0) + 1; localStorage.setItem(ATTEMPT_KEY, n); } catch(e){} return n; }
 function authHeaders(h){ h = h || {}; h.apikey = CFG.SUPABASE_KEY; if (/^eyJ/.test(CFG.SUPABASE_KEY)) h.Authorization = "Bearer " + CFG.SUPABASE_KEY; return h; }
 function sendResults(){
-  if (SENT || !CFG.SUPABASE_URL || !CFG.SUPABASE_KEY) { setSent(SENT ? "sent" : "off"); return; }
-  var row = {session:SESSION,
+  if (!CFG.SUPABASE_URL || !CFG.SUPABASE_KEY) { setSent("off"); return; }
+  var row = {session:SESSION, attempt:nextAttempt(),
     r1_score:results[1].score, r1_focus:results[1].focus,
     r2_score:results[2].score, r2_focus:results[2].focus,
     r3_score:results[3].score, r3_focus:results[3].focus,
@@ -216,7 +218,7 @@ function sendResults(){
     fetch(CFG.SUPABASE_URL.replace(/\/$/,"") + "/rest/v1/plays", {method:"POST",
       headers:authHeaders({"Content-Type":"application/json","Prefer":"return=minimal"}),
       body:JSON.stringify(row)})
-    .then(function(r){ if (!r.ok) throw new Error(r.status); SENT = true; setSent("sent"); })
+    .then(function(r){ if (!r.ok) throw new Error(r.status); setSent(row.attempt > 1 ? "replay" : "sent"); })
     .catch(function(){ if (n < 2) setTimeout(function(){ attempt(n+1); }, 1500*(n+1)); else setSent("failed"); });
   }
   attempt(0);
@@ -224,6 +226,7 @@ function sendResults(){
 function setSent(st){
   var el = document.getElementById("r-sent"); if (!el) return;
   el.textContent = st==="sent" ? "Your scores are on the room screen." :
+                   st==="replay" ? "Sent to the room screen as a replay." :
                    st==="sending" ? "Sending your scores to the room screen…" :
                    st==="failed" ? "Could not reach the room screen. Your scores are still shown here." : "";
 }
@@ -357,7 +360,7 @@ function renderResults(){
   $("r-verdict-h").textContent = h; $("r-verdict").textContent = v;
   if (POLL_URL){ var p = $("r-poll"); p.href = POLL_URL; p.style.display = "block"; $("r-pollnote").textContent = "Tap the button below, or use the code on the big screen."; }
 }
-$("r-again").onclick = function(){ results = {}; show("brief1"); }; // a replay is not sent again
+$("r-again").onclick = function(){ results = {}; show("brief1"); }; // a replay is sent with attempt > 1
 </script>
 </body>
 </html>
