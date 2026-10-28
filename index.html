@@ -57,7 +57,15 @@ p{margin:0 0 12px}
 .meter .cut{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--alert)}
 .meter .cutlab{position:absolute;top:16px;font-size:12px;color:var(--alert);transform:translateX(-50%);white-space:nowrap;font-weight:600}
 .pad{flex:1;min-height:300px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:var(--surface);border:1px solid var(--line);cursor:pointer}
-.dot{width:min(62vw,240px);height:min(62vw,240px);border-radius:50%;background:var(--grey-dot);transition:background .05s, transform .06s}
+.dot{width:min(62vw,240px);height:min(62vw,240px);border-radius:50%;background:var(--grey-dot);transition:background .05s, transform .06s;
+  display:flex;align-items:center;justify-content:center;font:400 88px 'Fraunces',serif;color:var(--bg)}
+.legend{display:flex;gap:28px;margin:10px 0 16px}
+.legend div{display:flex;align-items:center;gap:10px;font-size:18px}
+.legend i{width:40px;height:40px;border-radius:50%;background:var(--grey-dot);flex:none}
+.legend i.g{background:var(--brass-hi)}
+.de{font-size:15px;color:var(--muted);margin:-8px 0 14px}
+.steps{margin:0 0 12px 1.3em}
+.steps li{margin-bottom:6px}
 .dot.gold{background:var(--brass-hi);box-shadow:0 0 0 10px rgba(212,167,84,.18)}
 .dot.hit{transform:scale(.94)}
 .timer{height:4px;background:var(--line);border-radius:0;margin-top:14px;overflow:hidden}
@@ -86,7 +94,14 @@ td.n{font-family:'Fraunces',serif;font-size:24px}
 <section class="screen on" id="s-intro">
   <p class="eyebrow">BRIDGES, Mainz. A live game.</p>
   <h1>The Focus Game</h1>
-  <p>Three short rounds, 15 seconds each. A circle flashes. <b>Tap when it turns gold.</b></p>
+  <p>A circle changes colour, again and again.</p>
+  <div class="legend"><div><i></i><span>Grey: <b>wait</b></span></div><div><i class="g"></i><span>Gold: <b>tap</b></span></div></div>
+  <p class="de" lang="de">Grau: warten. Gold: irgendwo auf das große Feld tippen.</p>
+  <ol class="steps">
+    <li>Tap anywhere on the big box when the circle is <b>gold</b>.</li>
+    <li>There are 3 rounds. Each round is 15 seconds.</li>
+    <li>Before each round, read the short rules. They change.</li>
+  </ol>
   <p class="muted">At the end, your three scores are sent to the room screen anonymously: no name, no device ID, nothing else.</p>
   <div class="card calm">
     <p class="eyebrow">How it works</p>
@@ -105,6 +120,8 @@ td.n{font-family:'Fraunces',serif;font-size:24px}
   <p class="eyebrow">Round 1 of 3</p>
   <h2>Nothing at stake</h2>
   <div class="card calm">
+    <div class="legend"><div><i></i><span>Grey: <b>wait</b></span></div><div><i class="g"></i><span>Gold: <b>tap</b></span></div></div>
+  <p class="de" lang="de">Grau: warten. Gold: irgendwo auf das große Feld tippen.</p>
     <p>Tap <b>once</b> each time the circle turns gold.</p>
     <p class="muted">Only you see your score.</p>
   </div>
@@ -280,8 +297,15 @@ function play(round){
   updateHud();
   show("play");
   var dot = $("dot"); dot.className = "dot";
-  // short lead-in so nobody is caught mid-scroll
-  setTimeout(function(){ state.start = performance.now(); tick(); }, 700);
+  // 3-2-1 countdown in the circle, so nobody is caught off guard
+  var hint = $("p-hint").textContent, n = 3, st = state;
+  $("p-hint").textContent = "Get ready…"; dot.textContent = n;
+  var cd = setInterval(function(){
+    if (state !== st){ clearInterval(cd); return; }
+    if (--n > 0){ dot.textContent = n; return; }
+    clearInterval(cd); dot.textContent = ""; $("p-hint").textContent = hint;
+    state.start = performance.now(); tick();
+  }, 800);
 }
 
 function tick(){
