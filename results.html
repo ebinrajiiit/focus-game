@@ -63,7 +63,7 @@ button.ghost{background:none;border:0;color:var(--muted);text-decoration:underli
   <p class="ask veiled" id="ask"></p>
   <div class="foot">
     <span id="status">Connecting…</span>
-    <span>Each dot is one person. Anonymous scores only. <button class="ghost" id="theme">Light / dark</button></span>
+    <span>Each dot is one person. Anonymous scores only. <button class="ghost" id="theme">Light / dark</button> <button class="ghost" id="csv">Download data (CSV)</button></span>
   </div>
 </main>
 <script src="config.js"></script>
@@ -86,6 +86,7 @@ addEventListener("keydown", function(e){
   else if (k==="ArrowLeft" || k==="PageUp"){ veil(true); e.preventDefault(); }
   else if ((k==="r" || k==="R") && confirm("Start a fresh room? The player count goes back to 0. Earlier scores stay saved (press A to show them again).")){ veil(true); setSince(MAX_ID); }
   else if ((k==="a" || k==="A") && SINCE && confirm("Show every score in this session again?")) setSince(0);
+  else if (k==="d" || k==="D") downloadCsv();
 });
 var ROUNDS = [
   {k:1, name:"Round 1", sub:"Nothing at stake"},
@@ -133,7 +134,18 @@ function strip(rows, k, axisMax){
   return s + '</svg>';
 }
 
+// Exports exactly the rows this screen is showing (this session, after any R reset), replays included.
+var LAST = [], CSV_COLS = ["id","created_at","attempt","r1_score","r1_focus","r2_score","r2_focus","r3_score","r3_focus","r2_taps"];
+function downloadCsv(){
+  var lines = [CSV_COLS.join(",")].concat(LAST.map(function(r){ return CSV_COLS.map(function(c){ return r[c] == null ? "" : r[c]; }).join(","); }));
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], {type:"text/csv"}));
+  a.download = "focus-game-" + SESSION + (DEMO ? "-sample" : "") + "-" + new Date().toISOString().slice(0,16).replace(/[T:]/g,"-") + ".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+document.getElementById("csv").onclick = downloadCsv;
 function render(all){
+  LAST = all;
   // First plays drive every number; replays (attempt > 1) only get their own line.
   var rows = all.filter(function(r){ return (r.attempt || 1) === 1; });
   var rep = all.filter(function(r){ return (r.attempt || 1) > 1; });
@@ -191,7 +203,7 @@ function authHeaders(h){ h = h || {}; h.apikey = CFG.SUPABASE_KEY; if (/^eyJ/.te
 function load(){
   if (DEMO){ MAX_ID = 1; render(SINCE ? [] : demoRows()); $("status").textContent = "Sample data for rehearsal. Remove ?demo=1 for the real room."; return; }
   if (!CFG.SUPABASE_URL || !CFG.SUPABASE_KEY){ $("status").textContent = "Not connected: add the Supabase URL and key to config.js."; render([]); return; }
-  var url = CFG.SUPABASE_URL.replace(/\/$/,"") + "/rest/v1/plays?select=id,attempt,r1_score,r1_focus,r2_score,r2_focus,r3_score,r3_focus&session=eq."
+  var url = CFG.SUPABASE_URL.replace(/\/$/,"") + "/rest/v1/plays?select=id,created_at,attempt,r1_score,r1_focus,r2_score,r2_focus,r3_score,r3_focus,r2_taps&session=eq."
           + encodeURIComponent(SESSION) + "&order=id.asc&limit=5000&id=gt." + SINCE;
   fetch(url, {headers:authHeaders()})
     .then(function(r){ if (!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
