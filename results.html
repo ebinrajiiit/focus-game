@@ -5,44 +5,44 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>The Room, Live</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#102E36; --panel:#173F4A; --fg:#F6F1E7; --muted:#9FB0B3; --mist:#C9D6D6;
-  --brass:#B0832E; --brass-hi:#D4A754; --line:#2A5560; --alert:#E08A75; --dot:#EDE5D3;
+  --bg:#FAF8F4; --panel:#FFFFFF; --fg:#1D1D1B; --muted:#6A665F; --mist:#3F3D3A;
+  --brass:#A63A1F; --brass-hi:#A63A1F; --line:#D9D4CA; --alert:#A63A1F; --dot:#1D1D1B;
 }
-:root[data-theme="light"]{
-  --bg:#F6F1E7; --panel:#FBF8F1; --fg:#14262C; --muted:#55666B; --mist:#4F7782;
-  --brass:#8A6420; --brass-hi:#B0832E; --line:#DCD2BD; --alert:#9B3B2B; --dot:#173F4A;
+:root[data-theme="dark"]{
+  --bg:#181817; --panel:#211F1D; --fg:#EDEAE4; --muted:#A9A49B; --mist:#CFCAC1;
+  --brass:#E27D60; --brass-hi:#E27D60; --line:#3A3733; --alert:#E27D60; --dot:#EDEAE4;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans',system-ui,sans-serif;min-height:100vh}
+body{background:var(--bg);color:var(--fg);font-family:'Source Sans 3',system-ui,sans-serif;min-height:100vh}
 main{max-width:1760px;margin:0 auto;padding:clamp(16px,3vw,56px) clamp(16px,4vw,72px);display:flex;flex-direction:column;gap:clamp(14px,2vw,28px)}
 .eyebrow{font-size:clamp(13px,1.1vw,20px);color:var(--muted);margin-bottom:6px}
-h1{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:clamp(28px,3.6vw,68px);line-height:1.08}
+h1{font-family:'Source Serif 4',Georgia,serif;font-weight:600;font-size:clamp(28px,3.6vw,68px);line-height:1.08}
 .top{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
 .top>div:first-child{flex:1;min-width:0}
-.count{font-family:'Fraunces',serif;font-size:clamp(36px,4.4vw,84px);line-height:1;text-align:right}
-.count small{display:block;font-family:'IBM Plex Sans';font-size:clamp(12px,1vw,18px);color:var(--muted);margin-top:4px}
+.count{font-family:'Source Serif 4',serif;font-size:clamp(36px,4.4vw,84px);line-height:1;text-align:right}
+.count small{display:block;font-family:'Source Sans 3';font-size:clamp(12px,1vw,18px);color:var(--muted);margin-top:4px}
 .strips{display:flex;flex-direction:column;border-bottom:1px solid var(--line)}
 .strip{display:grid;grid-template-columns:clamp(120px,14vw,260px) 1fr clamp(170px,17vw,320px);gap:clamp(10px,1.4vw,24px);align-items:center;border-top:1px solid var(--line);padding:clamp(8px,1vw,16px) 0}
-.strip .lab b{display:block;font-family:'Fraunces',serif;font-weight:400;font-size:clamp(18px,1.8vw,32px)}
+.strip .lab b{display:block;font-family:'Source Serif 4',serif;font-weight:400;font-size:clamp(18px,1.8vw,32px)}
 .strip .lab span{font-size:clamp(12px,.95vw,17px);color:var(--muted)}
 .strip svg{width:100%;height:auto;display:block}
 .strip .num{text-align:right;display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}
-.strip .num b{display:block;font-family:'Fraunces',serif;font-weight:400;font-size:clamp(22px,2.4vw,44px);line-height:1.05}
+.strip .num b{display:block;font-family:'Source Serif 4',serif;font-weight:400;font-size:clamp(22px,2.4vw,44px);line-height:1.05}
 .strip .num span{font-size:clamp(11px,.85vw,15px);color:var(--muted)}
 .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.4vw,44px)}
 .veiled{visibility:hidden;opacity:0}
 #facts,#ask{transition:opacity .6s}
-.fact h2{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(18px,1.7vw,30px);margin-bottom:6px}
+.fact h2{font-family:'Source Serif 4',serif;font-weight:400;font-size:clamp(18px,1.7vw,30px);margin-bottom:6px}
 .fact p{font-size:clamp(13px,1.05vw,20px);color:var(--mist);line-height:1.45}
 .fact strong{color:var(--fg);font-weight:500}
 .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:clamp(11px,.85vw,15px);color:var(--muted)}
 .tag{color:var(--alert)}
 .replays{font-size:clamp(13px,1.05vw,20px);color:var(--muted);margin-top:calc(-1 * clamp(6px,1vw,16px))}
 .replays:empty{display:none}
-.wait{font-family:'Fraunces',serif;font-size:clamp(22px,2.4vw,40px);color:var(--muted);padding:40px 0}
+.wait{font-family:'Source Serif 4',serif;font-size:clamp(22px,2.4vw,40px);color:var(--muted);padding:40px 0}
 button.ghost{background:none;border:0;color:var(--muted);text-decoration:underline;font:inherit;cursor:pointer}
 .ask{font-size:clamp(16px,1.5vw,28px);color:var(--fg)}
 @media (max-width:760px){ .facts{grid-template-columns:1fr} .strip{grid-template-columns:1fr} .strip .num{text-align:left} }
@@ -94,7 +94,7 @@ var ROUNDS = [
   {k:3, name:"Round 3", sub:"Checks and appeals"}
 ];
 document.getElementById("theme").onclick = function(){
-  var r = document.documentElement; r.dataset.theme = r.dataset.theme === "light" ? "dark" : "light";
+  var r = document.documentElement; r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark";
 };
 function $(id){ return document.getElementById(id); }
 function mean(a){ return a.length ? a.reduce(function(s,x){return s+x;},0)/a.length : 0; }
