@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Loop Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Source+Sans+3:wght@400;600&family=Source+Code+Pro:wght@400;500&display=swap">
+<style>
+/* Editorial look matching the BRIDGES deck: warm white, near-black, one deep red. */
+:root{
+  --bg:#FAF8F4; --surface:#FFFFFF; --ink:#1D1D1B; --muted:#6A665F; --line:#DEDAD2; --soft:#9C978E;
+  --accent:#A63A1F; --dots:#3B3A37; --ghost:#C9C4BA; --onink:#FAF8F4;
+  --f-display:'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --f-body:'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+  --f-mono:'Source Code Pro', Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#181817; --surface:#211F1D; --ink:#EDEAE4; --muted:#A9A49B; --line:#3A3733; --soft:#7D786F;
+  --accent:#E27D60; --dots:#CFCAC1; --ghost:#4A4640; --onink:#181817; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#181817; --surface:#211F1D; --ink:#EDEAE4; --muted:#A9A49B; --line:#3A3733; --soft:#7D786F;
+  --accent:#E27D60; --dots:#CFCAC1; --ghost:#4A4640; --onink:#181817; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:32px 40px}
+.wrap{max-width:1440px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px 32px;border-bottom:1px solid var(--line);padding-bottom:20px}
+.context{font-size:15px;color:var(--muted);margin:0}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(32px,4vw,52px);line-height:1.06;margin:6px 0 8px;letter-spacing:-.01em;text-wrap:balance}
+.lede{max-width:64ch;color:var(--muted);margin:0;font-size:18px}
+.transport{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:inherit;cursor:pointer;border-radius:3px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;font-weight:600}
+button:hover{border-color:var(--soft)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--ink);border-color:var(--ink);color:var(--onink);min-width:104px}
+.weekread{font-family:var(--f-mono);font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:118px}
+select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:8px 10px}
+.grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:20px}
+.panel h2{font-family:var(--f-display);font-weight:600;font-size:21px;margin:0 0 4px}
+.panel .note{font-size:14px;color:var(--muted);margin:0}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 6px}
+.presets button{text-align:left;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.presets button small{font-size:13px;color:var(--muted);font-weight:400}
+.presets button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.presets button.room{grid-column:1 / -1;border-color:var(--accent)}
+.presets button.room[aria-pressed="true"]{box-shadow:inset 0 0 0 1px var(--accent)}
+.presets button.room b{color:var(--accent)}
+.roombox{margin:6px 0 2px;padding:12px 0 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.roombox p{margin:0;font-size:14px;color:var(--muted);line-height:1.4}
+.roombox .rowline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.roombox input[type=number]{width:84px;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink)}
+.roombox .status{font-size:13px}
+.controls{display:flex;flex-direction:column;gap:16px;margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
+.ctl label{display:flex;justify-content:space-between;gap:12px;font-weight:600;font-size:15px}
+.ctl output{font-family:var(--f-mono);font-size:13px;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ctl p{margin:2px 0 6px;font-size:13.5px;color:var(--muted);line-height:1.4}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.main{display:flex;flex-direction:column;gap:24px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:3px;background:var(--surface)}
+@media (max-width:1240px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{padding:16px 18px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi .k{font-size:14px;color:var(--muted);font-weight:600}
+.kpi .v{font-family:var(--f-display);font-size:clamp(30px,2.8vw,42px);line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:13px;color:var(--muted);line-height:1.35}
+.kpi.alert .v{color:var(--accent)}
+.chartcard{padding:18px 20px 14px}
+.charthead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 20px;margin-bottom:8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sw{width:22px;height:0;border-top:3px solid}
+.sw.v{border-color:var(--ink)} .sw.f{border-color:var(--accent)} .sw.w{border-color:var(--soft);border-top-style:dashed;border-top-width:2px} .sw.g{border-color:var(--ghost)}
+.canvasbox{position:relative;width:100%;height:340px}
+canvas{display:block;width:100%;height:100%}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+@media (max-width:860px){.lower{grid-template-columns:minmax(0,1fr)}}
+.fieldbox{position:relative;width:100%;aspect-ratio:1/1;max-width:100%;max-height:400px;margin:12px auto 10px}
+.flegend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13.5px;color:var(--muted)}
+.flegend i{display:inline-block;width:12px;height:12px;vertical-align:-1px;margin-right:6px}
+.dot{border-radius:50%} .ok{background:var(--dots)} .fl{background:var(--accent)}
+.sq{border-radius:1px;background:var(--soft)} .ring{border-radius:50%;border:2px solid var(--ink)}
+.bars{display:flex;flex-direction:column;gap:16px;margin-top:14px}
+.bargroup h3{font-size:15px;font-weight:600;margin:0 0 8px}
+.barrow{display:grid;grid-template-columns:150px minmax(0,1fr) 54px;gap:10px;align-items:center;font-size:14px;margin:4px 0}
+.barrow .lab{color:var(--muted)}
+.track{height:14px;background:var(--bg);border:1px solid var(--line);position:relative}
+.track i{position:absolute;left:0;top:0;bottom:0;background:var(--dots)}
+.track i.b{background:var(--accent)}
+.barrow .num{font-family:var(--f-mono);font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.verdict{font-family:var(--f-display);font-size:19px;line-height:1.35;margin:14px 0 0}
+ol.log{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:0}
+ol.log li{padding:10px 0;border-top:1px solid var(--line);font-size:15.5px;line-height:1.45}
+ol.log li:first-child{border-top:none}
+ol.log b{font-family:var(--f-mono);font-weight:500;font-size:12.5px;color:var(--muted);display:block;letter-spacing:.02em}
+ol.log li.lead{font-family:var(--f-display);font-size:19px}
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;font-size:13.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:2px;padding:0 5px;background:var(--surface)}
+details{font-size:15px;color:var(--muted)}
+details summary{cursor:pointer;color:var(--ink);font-weight:600}
+details p{max-width:82ch}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="context">BRIDGES 2026 · An agent-based model for discussion, not a prediction</p>
+      <h1>An agent-based model of the loop</h1>
+      <p class="lede">400 people wear a focus sensor. Their score has consequences, so some of them learn to move it. Watch how well the score still tracks real focus, and who gets flagged, as an institution keeps using it.</p>
+    </div>
+    <div class="transport" role="group" aria-label="Simulation controls">
+      <button id="play" class="primary" type="button">Play</button>
+      <button id="stepBtn" type="button">Step 1 week</button>
+      <button id="reset" type="button">Reset</button>
+      <label for="speed" class="weekread" style="min-width:auto">Speed</label>
+      <select id="speed"><option value="4">4 wk/s</option><option value="8" selected>8 wk/s</option><option value="16">16 wk/s</option><option value="40">40 wk/s</option></select>
+      <span class="weekread" id="weekread" aria-live="polite">Week 0 / 156</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <aside class="panel" aria-label="Scenario and parameters">
+      <h2>Scenario</h2>
+      <p class="note">Stylised governance settings for discussion, not empirical estimates.</p>
+      <div class="presets" id="presets">
+        <button type="button" data-preset="lab">Lab<small>Nothing at stake</small></button>
+        <button type="button" data-preset="rights">Rights-first<small>EU-like</small></button>
+        <button type="button" data-preset="market">Market-first<small>US-like</small></button>
+        <button type="button" data-preset="scale">Scale-first<small>India-like</small></button>
+        <button type="button" class="room" data-preset="room"><b>Your room</b><small id="roomsmall">Run the model with how this audience played the Focus Game</small></button>
+      </div>
+      <div class="roombox" id="roombox">
+        <p id="roomtext">Share of players who crossed the line in round 2. The most anyone could score honestly was 9, so crossing 25 means they learned the rule.</p>
+        <div class="rowline"><label for="roomshare" style="font-weight:600;font-size:15px">Crossed the line</label><input id="roomshare" type="number" min="0" max="100" step="1" value="60"><span style="color:var(--muted)">%</span><button type="button" id="roomfetch">Load from the game</button></div>
+        <p class="status" id="roomstatus"></p>
+      </div>
+      <div class="controls" id="controls">
+        <div class="ctl"><label for="stakes">What’s at stake <output id="o-stakes"></output></label><p>From a private number to bonuses, grades or jobs.</p><input id="stakes" type="range" min="0" max="1" step="0.05"></div>
+        <div class="ctl"><label for="adapt">How fast people adapt <output id="o-adapt"></output></label><p>How quickly people learn what moves their score.</p><input id="adapt" type="range" min="0" max="1" step="0.05"></div>
+        <div class="ctl"><label for="genuine">Real effort vs. gaming <output id="o-genuine"></output></label><p>Share of adaptation that really changes focus rather than only the signal.</p><input id="genuine" type="range" min="0" max="1" step="0.05"></div>
+        <div class="ctl"><label for="retrain">Recalibrate the norm <output id="o-retrain"></output></label><p>How often the system resets “normal” using this week’s data.</p><input id="retrain" type="range" min="0" max="52" step="1"></div>
+        <div class="ctl"><label for="cutoff">Cut-off score <output id="o-cutoff"></output></label><p>Below this, a person is flagged as “disengaged”.</p><input id="cutoff" type="range" min="0.1" max="0.5" step="0.01"></div>
+        <div class="ctl"><label for="noiseGap">Extra sensor noise, group B <output id="o-noiseGap"></output></label><p>30% of people for whom the sensor works worse (e.g. hair type, skin tone, cheaper devices).</p><input id="noiseGap" type="range" min="0" max="1.2" step="0.05"></div>
+        <div class="ctl"><label for="audit">Audits and appeals <output id="o-audit"></output></label><p>How often gaming is caught or a flag is challenged and reset.</p><input id="audit" type="range" min="0" max="1" step="0.05"></div>
+      </div>
+    </aside>
+
+    <section class="main">
+      <div class="kpis" aria-live="polite">
+        <div class="kpi"><span class="k">How well the score tracks focus</span><span class="v" id="k-valid">–</span><span class="s" id="k-valid-s">Correlation with real focus</span></div>
+        <div class="kpi alert"><span class="k">Expiry date</span><span class="v" id="k-half">–</span><span class="s" id="k-half-s">Weeks until that halves</span></div>
+        <div class="kpi"><span class="k">Flagged</span><span class="v" id="k-flag">–</span><span class="s">Share below the cut-off</span></div>
+        <div class="kpi"><span class="k">Wrongly flagged</span><span class="v" id="k-wrong">–</span><span class="s">Of those flagged, focus above the median</span></div>
+        <div class="kpi alert"><span class="k">Group B flagged</span><span class="v" id="k-gap">–</span><span class="s">Times as often as group A, 8-week average</span></div>
+      </div>
+
+      <div class="panel chartcard">
+        <div class="charthead">
+          <h2>Three years of use</h2>
+          <div class="legend"><span><i class="sw v"></i>How well the score tracks focus</span><span><i class="sw f"></i>Flagged share</span><span><i class="sw w"></i>Wrongly flagged</span><span><i class="sw g"></i>Previous run</span></div>
+        </div>
+        <div class="canvasbox"><canvas id="chart" role="img" aria-label="Line chart of validity, flagged share and wrongly flagged share over 156 weeks"></canvas></div>
+      </div>
+
+      <div class="lower">
+        <div class="panel">
+          <h2>The population</h2>
+          <p class="note">One mark per person, updated weekly.</p>
+          <div class="fieldbox"><canvas id="field" role="img" aria-label="Grid of 400 people showing who is flagged and who is gaming the signal"></canvas></div>
+          <div class="flegend"><span><i class="dot ok"></i>Not flagged</span><span><i class="dot fl"></i>Flagged</span><span><i class="sq"></i>Square = group B</span><span><i class="ring"></i>Ring = gaming the score</span></div>
+        </div>
+        <div class="panel">
+          <h2>Who gets flagged</h2>
+          <p class="note">Group B (30% of people) is read less accurately by the sensor. Real focus is distributed the same way in both groups.</p>
+          <div class="bars">
+            <div class="bargroup"><h3>Flagged as “not paying attention”</h3>
+              <div class="barrow"><span class="lab">Group A</span><span class="track"><i id="bA"></i></span><span class="num" id="nA">–</span></div>
+              <div class="barrow"><span class="lab">Group B</span><span class="track"><i class="b" id="bB"></i></span><span class="num" id="nB">–</span></div>
+            </div>
+            <div class="bargroup"><h3>Flagged although their focus is above the median</h3>
+              <div class="barrow"><span class="lab">Group A</span><span class="track"><i id="wA"></i></span><span class="num" id="mA">–</span></div>
+              <div class="barrow"><span class="lab">Group B</span><span class="track"><i class="b" id="wB"></i></span><span class="num" id="mB">–</span></div>
+            </div>
+          </div>
+          <p class="verdict" id="verdict"></p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>What is happening</h2>
+        <ol class="log" id="log"></ol>
+      </div>
+
+      <details class="panel">
+        <summary>How the model works (agents, rules, measures)</summary>
+        <p>Each person has a true level of focus that drifts week to week around their own mean. The sensor reads focus plus noise; group B gets extra noise. The score is the reading normalised against a reference population (the “norm”) and squashed to 0–1. People near or below the cut-off feel pressure in proportion to the stakes. They respond with effort: part of it raises real focus, and the rest inflates only the signal (gaming). Audits reset gaming at random. Recalibration re-centres the norm on this week’s readings, including any gaming. Validity is the Pearson correlation between score and true focus across all 400 people. The half-life is the first week validity falls to half its lab value. Every run uses the same random seed, so the same settings give the same result.</p>
+        <p><b>Your room.</b> The share of Focus Game players who crossed the line in round 2 sets how fast agents adapt. The other settings describe a high-stakes institution: a cut-off with a consequence, little checking, recalibration every 8 weeks, and a small share of adaptation that is real effort, because in the game more taps never meant more focus.</p>
+      </details>
+
+      <div class="foot"><span>Keys: <kbd>Space</kbd> play/pause · <kbd>→</kbd> step · <kbd>R</kbd> reset · <kbd>1</kbd>–<kbd>5</kbd> scenarios · <kbd>L</kbd> load your room</span><span>Ebin Deni Raj · FACTS-H Lab, IIIT Kottayam</span></div>
+    </section>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+// ---- SIM CORE ----
+function makeRng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function makeGauss(rng){let spare=null;return function(){if(spare!==null){const v=spare;spare=null;return v;}let u=0,v=0;while(u===0)u=rng();v=rng();const r=Math.sqrt(-2*Math.log(u));spare=r*Math.sin(2*Math.PI*v);return r*Math.cos(2*Math.PI*v);};}
+const N_AGENTS=400, B_SHARE=0.3, HORIZON=156, SEED=20261112;
+function createSim(params,seed){
+  const rng=makeRng(seed), gauss=makeGauss(rng);
+  const agents=[];
+  for(let i=0;i<N_AGENTS;i++){const mu=gauss();agents.push({mu,c:mu+gauss()*0.34,g:0,d:0,skill:0.2+0.8*rng(),groupB:rng()<B_SHARE,s:0,score:0.5,flagged:false});}
+  const sim={params,agents,rng,gauss,week:0,m:0,sd:1,sd0:1,history:[],retrainWeeks:[],v0:null,halfLifeWeek:null,lastShift:0};
+  measure(sim);calibrate(sim);sim.sd0=sim.sd;scoreAll(sim);record(sim);
+  return sim;
+}
+function noiseFor(sim,a){return 0.5+(a.groupB?sim.params.noiseGap:0);}
+function measure(sim){for(const a of sim.agents){a.s=a.c+a.g+noiseFor(sim,a)*sim.gauss();}}
+function calibrate(sim){const xs=sim.agents.map(a=>a.s);const m=xs.reduce((p,x)=>p+x,0)/xs.length;const v=xs.reduce((p,x)=>p+(x-m)*(x-m),0)/xs.length;sim.m=m;sim.sd=Math.sqrt(v)||1;}
+function scoreAll(sim){const cut=sim.params.cutoff;for(const a of sim.agents){const z=(a.s-sim.m)/sim.sd;a.score=1/(1+Math.exp(-1.6*z));a.flagged=a.score<cut;}}
+function corr(xs,ys){const n=xs.length;let mx=0,my=0;for(let i=0;i<n;i++){mx+=xs[i];my+=ys[i];}mx/=n;my/=n;let sxy=0,sxx=0,syy=0;for(let i=0;i<n;i++){const dx=xs[i]-mx,dy=ys[i]-my;sxy+=dx*dy;sxx+=dx*dx;syy+=dy*dy;}return sxx>0&&syy>0?sxy/Math.sqrt(sxx*syy):0;}
+function record(sim){
+  const A=sim.agents;
+  const validity=corr(A.map(a=>a.score),A.map(a=>a.c));
+  const cs=A.map(a=>a.c).sort((x,y)=>x-y);const median=(cs[N_AGENTS/2-1]+cs[N_AGENTS/2])/2;
+  let fl=0,flA=0,flB=0,nA=0,nB=0,wrong=0,gsum=0,hiA=0,hiB=0,wA=0,wB=0;
+  for(const a of A){const hi=a.c>median;if(a.groupB){nB++;if(a.flagged)flB++;if(hi){hiB++;if(a.flagged)wB++;}}else{nA++;if(a.flagged)flA++;if(hi){hiA++;if(a.flagged)wA++;}}if(a.flagged){fl++;if(hi)wrong++;}gsum+=a.g;}
+  const h={week:sim.week,validity,flagged:fl/N_AGENTS,wrong:fl?wrong/fl:0,flA,flB,nA,nB,hiA,hiB,wA,wB,inflation:(gsum/N_AGENTS)/sim.sd0};
+  sim.history.push(h);
+  if(sim.v0===null)sim.v0=validity;
+  if(sim.halfLifeWeek===null&&sim.week>0&&validity<=sim.v0/2)sim.halfLifeWeek=sim.week;
+  return h;
+}
+function step(sim){
+  if(sim.week>=HORIZON)return null;
+  const p=sim.params,events=[];
+  sim.week++;
+  for(const a of sim.agents){
+    const pressure=p.stakes/(1+Math.exp(-12*(p.cutoff+0.08-a.score)));
+    const effort=p.adapt*0.3*pressure*a.skill;
+    a.g=(a.g+effort*(1-p.genuine))*0.997;
+    a.d=(a.d+effort*p.genuine*0.6)*0.99;
+    if(p.audit>0&&sim.rng()<p.audit*0.08)a.g=0;
+    a.c+=0.1*(a.mu+a.d-a.c)+0.15*sim.gauss();
+  }
+  measure(sim);
+  if(p.retrain>0&&sim.week%p.retrain===0){const pm=sim.m;calibrate(sim);sim.lastShift=(sim.m-pm)/sim.sd0;sim.retrainWeeks.push(sim.week);events.push('retrain');}
+  scoreAll(sim);
+  const prevHalf=sim.halfLifeWeek;const h=record(sim);
+  if(prevHalf===null&&sim.halfLifeWeek!==null)events.push('half');
+  return {h,events};
+}
+function gapAt(sim,idx){ // 8-week pooled flag-rate ratio, B over A
+  const H=sim.history;let fa=0,fb=0,na=0,nb=0;
+  for(let i=Math.max(0,idx-7);i<=idx;i++){fa+=H[i].flA;fb+=H[i].flB;na+=H[i].nA;nb+=H[i].nB;}
+  const ra=na?fa/na:0,rb=nb?fb/nb:0;return ra>0?rb/ra:null;
+}
+// ---- END SIM CORE ----
+
+const PRESETS={
+  lab:{stakes:0,adapt:0,genuine:0.5,retrain:0,cutoff:0.25,noiseGap:0,audit:0},
+  rights:{stakes:0.25,adapt:0.4,genuine:0.5,retrain:52,cutoff:0.25,noiseGap:0.3,audit:0.6},
+  market:{stakes:0.8,adapt:0.6,genuine:0.25,retrain:8,cutoff:0.30,noiseGap:0.3,audit:0.05},
+  scale:{stakes:0.7,adapt:0.6,genuine:0.25,retrain:4,cutoff:0.30,noiseGap:0.9,audit:0.02},
+  room:{stakes:0.8,adapt:0.6,genuine:0.15,retrain:8,cutoff:0.30,noiseGap:0.6,audit:0.05}
+};
+const KEYS=['stakes','adapt','genuine','retrain','cutoff','noiseGap','audit'];
+const FMT={
+  stakes:v=>v===0?'nothing':v<0.35?'low':v<0.7?'medium':'high',
+  adapt:v=>v===0?'never':Math.round(v*100)+'%',
+  genuine:v=>Math.round(v*100)+'% real',
+  retrain:v=>v===0?'never':v===1?'every week':'every '+v+' wk',
+  cutoff:v=>v.toFixed(2),
+  noiseGap:v=>v===0?'none':'+'+Math.round(v/0.5*100)+'%',
+  audit:v=>v===0?'none':Math.round(v*100)+'%'
+};
+const $=id=>document.getElementById(id);
+let params={...PRESETS.market}, activePreset='market';
+let sim=null, ghost=null, playing=false, acc=0, lastT=0, logItems=[], flags={};
+
+function readTokens(){const cs=getComputedStyle(document.documentElement);const g=n=>cs.getPropertyValue(n).trim();
+  return {ink:g('--ink'),muted:g('--muted'),line:g('--line'),dots:g('--dots'),soft:g('--soft'),accent:g('--accent'),ghost:g('--ghost'),surface:g('--surface'),mono:g('--f-mono'),body:g('--f-body')};}
+
+function syncControls(){for(const k of KEYS){const el=$(k);el.value=params[k];$('o-'+k).textContent=FMT[k](+params[k]);}
+  document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.preset===activePreset)));}
+
+function addLog(week,text,lead){logItems.unshift({week,text,lead});logItems=logItems.slice(0,6);renderLog();}
+function renderLog(){$('log').innerHTML=logItems.map(i=>`<li class="${i.lead?'lead':''}"><b>Week ${i.week}</b>${i.text}</li>`).join('');}
+
+function reset(keepGhost=true){
+  if(keepGhost&&sim&&sim.week>=10)ghost=sim.history.map(h=>h.validity);
+  sim=createSim({...params},SEED);playing=false;$('play').textContent='Play';flags={};logItems=[];
+  const v=sim.v0.toFixed(2);
+  addLog(0,`Calibrated in the lab. The score tracks real focus with a correlation of ${v}.`,true);
+  if(activePreset==='room')addLog(0,`Your room: ${Math.round(params.adapt*100)}% of players crossed the line in round 2. That sets how fast these 400 people adapt.`,true);
+  render();
+}
+function onEvents(res){
+  const h=res.h,w=sim.week;
+  if(res.events.includes('retrain')){
+    const n=sim.retrainWeeks.length,sh=sim.lastShift;
+    if(n===1||(Math.abs(sh)>0.08&&n%3===0))addLog(w,`Norm recalibrated on this week’s readings (shift ${sh>=0?'+':''}${sh.toFixed(2)} SD). People who did not adapt now look worse.`);
+  }
+  if(res.events.includes('half'))addLog(w,`The score now tracks focus only half as well as in the lab. It partly measures people’s reactions to the score.`,true);
+  if(!flags.wrong&&h.wrong>=0.2&&w>4){flags.wrong=1;addLog(w,`One in five flagged people has above-median focus.`);}
+  const gp=gapAt(sim,sim.history.length-1);
+  if(!flags.gap&&gp&&gp>=1.5&&w>8){flags.gap=1;addLog(w,`Group B is flagged ${gp.toFixed(1)}× as often as group A.`);}
+  if(!flags.infl&&h.inflation>=0.5){flags.infl=1;addLog(w,`Gaming now moves the average score as much as half the natural spread of real focus.`);}
+  if(w===52)addLog(w,`One year in. The score tracks focus at ${h.validity.toFixed(2)} (lab ${sim.v0.toFixed(2)}).`);
+  if(w===HORIZON){const msg=sim.params.stakes===0?`Three years. Nothing was at stake, so nobody adapted and the score held at ${h.validity.toFixed(2)}.`:`Three years. The score tracks focus at ${h.validity.toFixed(2)}, down from ${sim.v0.toFixed(2)} in the lab.`;addLog(w,msg,true);}
+}
+function advance(){const r=step(sim);if(!r){playing=false;$('play').textContent='Replay';return false;}onEvents(r);return true;}
+
+function render(){
+  const H=sim.history,h=H[H.length-1];
+  $('weekread').textContent=`Week ${sim.week} / ${HORIZON}`;
+  $('k-valid').textContent=h.validity.toFixed(2);
+  $('k-valid-s').textContent=`Lab ${sim.v0.toFixed(2)} · correlation with real focus`;
+  $('k-half').textContent=sim.halfLifeWeek!==null?`${sim.halfLifeWeek} wk`:'not yet';
+  $('k-half-s').textContent=sim.halfLifeWeek!==null?`Fell below ${(sim.v0/2).toFixed(2)}, half the lab value`:`Weeks until it halves (${(sim.v0/2).toFixed(2)})`;
+  $('k-flag').textContent=Math.round(h.flagged*100)+'%';
+  $('k-wrong').textContent=Math.round(h.wrong*100)+'%';
+  const gp=gapAt(sim,H.length-1);$('k-gap').textContent=gp?(gp.toFixed(1)+'×'):'–';
+  drawChart();drawField();drawBars();
+}
+
+function pooled(idx,a,b){const H=sim.history;let x=0,y=0;for(let i=Math.max(0,idx-7);i<=idx;i++){x+=H[i][a];y+=H[i][b];}return y?x/y:0;}
+function drawBars(){
+  const i=sim.history.length-1;
+  const fA=pooled(i,'flA','nA'),fB=pooled(i,'flB','nB'),wA=pooled(i,'wA','hiA'),wB=pooled(i,'wB','hiB');
+  const mx=Math.max(0.05,fA,fB,wA,wB);
+  const set=(bar,num,v)=>{$(bar).style.width=(100*v/mx).toFixed(1)+'%';$(num).textContent=Math.round(v*100)+'%';};
+  set('bA','nA',fA);set('bB','nB',fB);set('wA','mA',wA);set('wB','mB',wB);
+  let t='';
+  if(sim.params.noiseGap===0)t='The sensor reads both groups equally well, so they are flagged at similar rates.';
+  else if(wA>0.005&&wB>=wA*1.3)t=`Among people who are focused, group B is flagged ${(wB/wA).toFixed(1)}× as often. The line falls unevenly because the sensor does.`;
+  else if(wA>=0.08&&wB>=0.08)t=`Once gaming spreads, focused people in both groups are wrongly flagged (${Math.round(wA*100)}% in A, ${Math.round(wB*100)}% in B). The score now sorts people by who learned to move it.`;
+  else if(fA>0.005&&fB>=fA*1.3)t=`Group B is flagged ${(fB/fA).toFixed(1)}× as often as group A, with the same real focus.`;
+  else t='So far the two groups are flagged at similar rates.';
+  $('verdict').textContent=t;
+}
+function sizeCanvas(cv){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;const w=Math.max(1,Math.round(r.width*d)),hh=Math.max(1,Math.round(r.height*d));if(cv.width!==w||cv.height!==hh){cv.width=w;cv.height=hh;}const ctx=cv.getContext('2d');ctx.setTransform(d,0,0,d,0,0);return {ctx,W:r.width,H:r.height};}
+
+function drawChart(){
+  const T=readTokens(),{ctx,W,H}=sizeCanvas($('chart'));ctx.clearRect(0,0,W,H);
+  const pad={l:44,r:16,t:12,b:34},pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+  const x=w=>pad.l+pw*(w/HORIZON),y=v=>pad.t+ph*(1-Math.max(0,Math.min(1,v)));
+  ctx.font=`12px ${T.mono}`;ctx.textBaseline='middle';
+  // grid
+  for(const v of [0,0.25,0.5,0.75,1]){ctx.strokeStyle=T.line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y(v)+.5);ctx.lineTo(W-pad.r,y(v)+.5);ctx.stroke();ctx.fillStyle=T.muted;ctx.textAlign='right';ctx.fillText(v.toFixed(2),pad.l-8,y(v));}
+  ctx.textAlign='center';ctx.textBaseline='top';
+  for(const w of [0,26,52,78,104,130,156]){const lab=w===0?'0':w%52===0?`${w/52} yr`:`${w} wk`;ctx.fillStyle=T.muted;ctx.fillText(lab,x(w),H-pad.b+12);}
+  // retrain ticks
+  ctx.strokeStyle=T.soft;ctx.lineWidth=1;for(const w of sim.retrainWeeks){ctx.beginPath();ctx.moveTo(x(w)+.5,H-pad.b);ctx.lineTo(x(w)+.5,H-pad.b+6);ctx.stroke();}
+  // half line
+  const hv=sim.v0/2;ctx.setLineDash([5,5]);ctx.strokeStyle=T.accent;ctx.globalAlpha=.7;ctx.beginPath();ctx.moveTo(pad.l,y(hv));ctx.lineTo(W-pad.r,y(hv));ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+  ctx.fillStyle=T.accent;ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText('half the lab value',W-pad.r-4,y(hv)-4);
+  const line=(arr,color,width,dash)=>{if(!arr.length)return;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash||[]);ctx.lineJoin='round';ctx.beginPath();arr.forEach((v,i)=>{i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v));});ctx.stroke();ctx.setLineDash([]);};
+  if(ghost)line(ghost,T.ghost,3);
+  const Hs=sim.history;
+  line(Hs.map(h=>h.wrong),T.soft,2,[6,5]);
+  line(Hs.map(h=>h.flagged),T.accent,2.5);
+  line(Hs.map(h=>h.validity),T.ink,3.5);
+  // endpoint
+  const last=Hs[Hs.length-1];ctx.fillStyle=T.ink;ctx.beginPath();ctx.arc(x(last.week),y(last.validity),5,0,Math.PI*2);ctx.fill();
+  ctx.font=`600 13px ${T.mono}`;ctx.textAlign=last.week>HORIZON-14?'right':'left';ctx.textBaseline='bottom';ctx.fillText(last.validity.toFixed(2),x(last.week)+(last.week>HORIZON-14?-8:8),y(last.validity)-6);
+}
+
+function drawField(){
+  const T=readTokens(),{ctx,W,H}=sizeCanvas($('field'));ctx.clearRect(0,0,W,H);
+  const n=20,cell=Math.min(W,H)/n,r=cell*0.32,ox=(W-cell*n)/2,oy=(H-cell*n)/2;
+  sim.agents.forEach((a,i)=>{
+    const cx=ox+(i%n+0.5)*cell,cy=oy+(Math.floor(i/n)+0.5)*cell;
+    ctx.fillStyle=a.flagged?T.accent:T.dots;
+    ctx.beginPath();
+    if(a.groupB){const s=r*1.75;ctx.rect(cx-s/2,cy-s/2,s,s);}else ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fill();
+    const gz=a.g/sim.sd0;
+    if(gz>0.35){ctx.strokeStyle=T.ink;ctx.lineWidth=Math.min(3,1+gz);ctx.beginPath();ctx.arc(cx,cy,r+ (a.groupB?r*0.55:r*0.42)+1.5,0,Math.PI*2);ctx.stroke();}
+  });
+}
+
+function tick(t){
+  if(playing){const dt=Math.min(0.25,(t-lastT)/1000);acc+=dt*(+$('speed').value);let moved=false;while(acc>=1&&playing){acc-=1;if(!advance())break;moved=true;}if(moved)render();}
+  lastT=t;requestAnimationFrame(tick);
+}
+function togglePlay(){if(sim.week>=HORIZON){reset();}playing=!playing;$('play').textContent=playing?'Pause':'Play';acc=0;}
+
+$('play').addEventListener('click',togglePlay);
+$('stepBtn').addEventListener('click',()=>{playing=false;$('play').textContent='Play';if(advance())render();else render();});
+$('reset').addEventListener('click',()=>reset());
+document.querySelectorAll('#presets button').forEach(b=>b.addEventListener('click',()=>{activePreset=b.dataset.preset;params={...PRESETS[activePreset]};syncControls();reset();}));
+for(const k of KEYS){$(k).addEventListener('input',e=>{params[k]=+e.target.value;$('o-'+k).textContent=FMT[k](params[k]);activePreset=null;syncControls();sim.params={...params};});}
+// a parameter change mid-run applies from the next week; Reset starts a fresh run with the same seed
+function selectPreset(p){activePreset=p;params={...PRESETS[p]};syncControls();reset();}
+function setRoomShare(pct,source){
+  pct=Math.max(0,Math.min(100,Math.round(pct)));$('roomshare').value=pct;
+  PRESETS.room.adapt=pct/100;$('roomsmall').textContent=`${pct}% of players crossed the line`;
+  if(source)$('roomstatus').textContent=source;
+  if(activePreset==='room')selectPreset('room');
+}
+$('roomshare').addEventListener('change',e=>setRoomShare(+e.target.value,'Entered by hand.'));
+function roomSession(){try{const q=new URLSearchParams(location.search).get('s');if(q&&/^[\w-]{1,40}$/.test(q))return q;}catch(e){}return (window.FOCUS_CONFIG&&window.FOCUS_CONFIG.SESSION)||'bridges-2026';}
+function loadRoom(){
+  const C=window.FOCUS_CONFIG;
+  if(!C||!C.SUPABASE_URL||!C.SUPABASE_KEY){$('roomstatus').textContent='Game data is not reachable from this page. Enter the share by hand.';return;}
+  $('roomstatus').textContent='Loading…';
+  const h={apikey:C.SUPABASE_KEY};if(/^eyJ/.test(C.SUPABASE_KEY))h.Authorization='Bearer '+C.SUPABASE_KEY;
+  fetch(C.SUPABASE_URL.replace(/\/$/,'')+'/rest/v1/plays?select=r2_score&session=eq.'+encodeURIComponent(roomSession())+'&limit=5000',{headers:h})
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
+    .then(rows=>{if(!rows.length){$('roomstatus').textContent='No game results yet for this session.';return;}
+      const n=rows.filter(r=>r.r2_score>=25).length;setRoomShare(100*n/rows.length,`From the game: ${n} of ${rows.length} players crossed the line.`);if(activePreset!=='room')selectPreset('room');})
+    .catch(e=>{$('roomstatus').textContent='Could not load game results ('+e.message+'). Enter the share by hand.';});
+}
+$('roomfetch').addEventListener('click',loadRoom);
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('input,select,textarea'))return;
+  if(e.code==='Space'){e.preventDefault();togglePlay();}
+  else if(e.key==='ArrowRight'){playing=false;$('play').textContent='Play';advance();render();}
+  else if(e.key==='r'||e.key==='R'){reset();}
+  else if(['1','2','3','4','5'].includes(e.key)){selectPreset(['lab','rights','market','scale','room'][+e.key-1]);}
+  else if(e.key==='l'||e.key==='L'){loadRoom();}
+});
+new ResizeObserver(()=>render()).observe(document.querySelector('.wrap'));
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>render());}catch(e){}
+new MutationObserver(()=>render()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+(function(){try{const q=new URLSearchParams(location.search);const r=q.get('room');if(r!==null&&!isNaN(+r)){setRoomShare(+r,'Taken from the link.');activePreset='room';params={...PRESETS.room};}}catch(e){}})();
+syncControls();reset(false);requestAnimationFrame(t=>{lastT=t;tick(t);});
+</script>
+</html>
